@@ -1,4 +1,4 @@
-import { Octokit } from '@octokit/rest'
+import { Octokit } from 'octokit'
 import { config } from '../config'
 import { updateFromHeaders, waitForAllowance, backoffUntilReset } from './rateLimiter'
 
@@ -28,6 +28,10 @@ async function requestWithRateLimit<T>(fn: (c: Octokit) => Promise<any>) {
       if (res && res.headers) updateFromHeaders(res.headers as Record<string, any>)
       return res.data ?? res
     } catch (err: any) {
+        if (err == null) {
+          // Treat null/undefined errors as real errors and fail fast
+          throw new Error('Unknown error')
+        }
       const status = err?.status ?? err?.statusCode
       const headers = err?.response?.headers ?? err?.headers
       if (headers) updateFromHeaders(headers as Record<string, any>)
@@ -44,8 +48,8 @@ async function requestWithRateLimit<T>(fn: (c: Octokit) => Promise<any>) {
         console.error('GitHub request failed after retries', err)
         throw err
       }
-      attempt++
       await backoffUntilReset(attempt)
+      attempt++
     }
   }
   return null

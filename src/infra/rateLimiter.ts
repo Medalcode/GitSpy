@@ -37,7 +37,7 @@ export async function waitForAllowance(tokens = 1) {
   // need to wait until reset
   const resetAtMs = state.resetAt * 1000
   const nowMs = Date.now()
-  const waitMs = Math.max(0, resetAtMs - nowMs) + 500 // small buffer
+  const waitMs = Math.max(0, resetAtMs - nowMs) + 700 // small buffer
   if (waitMs > 0) {
     await sleep(waitMs)
   }
@@ -53,7 +53,7 @@ export async function backoffUntilReset(attempt = 0) {
   const baseWait = Math.max(0, resetAtMs - nowMs)
   const expo = Math.min(maxBackoff, (2 ** attempt) * 1000)
   const waitMs = Math.max(baseWait, expo)
-  await sleep(waitMs + 200)
+  await sleep(waitMs + 300)
 }
 
 export function getState() {

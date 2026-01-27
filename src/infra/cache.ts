@@ -1,12 +1,13 @@
-import IORedis from 'ioredis'
+import Redis from 'ioredis'
 import { config } from '../config'
 
-let client: IORedis.Redis | null = null
+// use a permissive type to avoid strict runtime/compile-time mismatches
+let client: any = null
 
-export function getRedis() {
+export function getRedis(): any {
   if (client) return client
-  client = new IORedis(config.redisUrl)
-  client.on('error', (e) => console.error('Redis error', e))
+  client = new Redis(config.redisUrl)
+  client.on('error', (e: any) => console.error('Redis error', e))
   return client
 }
 
@@ -29,10 +30,10 @@ export async function delByPattern(pattern: string) {
   const r = getRedis()
   return new Promise<void>((resolve, reject) => {
     try {
-      const stream = r.scanStream({ match: pattern, count: 100 })
-      const pipeline = r.pipeline()
+      const stream: any = r.scanStream({ match: pattern, count: 100 })
+      const pipeline: any = r.pipeline()
       let found = false
-      stream.on('data', (keys: string[]) => {
+      stream.on('data', (keys: any[]) => {
         if (keys.length) {
           found = true
           for (const k of keys) pipeline.del(k)
@@ -46,7 +47,7 @@ export async function delByPattern(pattern: string) {
           reject(e)
         }
       })
-      stream.on('error', (err) => reject(err))
+      stream.on('error', (err: any) => reject(err))
     } catch (e) {
       reject(e)
     }

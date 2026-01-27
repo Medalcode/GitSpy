@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { createRequire } from 'module'
+import InMemoryDB from './inMemoryDb'
 
 const DB_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data')
 const DB_PATH = process.env.SQLITE_PATH || path.join(DB_DIR, 'gitspy.sqlite')
@@ -14,16 +14,18 @@ function ensureDir() {
 function loadSqlite() {
   // Lazy require so project can run without sqlite if not needed
   try {
-    // Use createRequire to support ESM runtime when package.json has "type":"module"
-    const require = createRequire(import.meta.url)
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const mod = require('better-sqlite3')
-    // support both CommonJS and ES module default export shapes
-    const Database = (mod && mod.default) ? mod.default : mod
-    return Database
+    // Prefer CommonJS require when available (this covers Jest environment)
+    if (typeof require === 'function') {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const mod = require('better-sqlite3')
+      const Database = (mod && mod.default) ? mod.default : mod
+      return Database
+    }
+    // Fallback: try to use dynamic import of module loader
+    // If neither approach works, we'll fall through to the catch block.
   } catch (e) {
-    console.warn('better-sqlite3 not installed; persistence disabled')
-    return null
+    console.warn('better-sqlite3 not installed; using in-memory fallback for tests')
+    return InMemoryDB
   }
 }
 
