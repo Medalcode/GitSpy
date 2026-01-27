@@ -33,3 +33,25 @@ Estado actual:
 
 --
 Documento generado automáticamente por el asistente el 27/01/2026
+
+---
+Estado al final del día (27/01/2026):
+
+- Tests unitarios: todos pasan (70/70).
+- Tests de integración: pendientes (no ejecutados en esta sesión).
+- Tests e2e: pendientes (no ejecutados en esta sesión).
+- Commit y push: realizado (commit cf6e078, rama `main`).
+
+Próximo paso (mañana):
+
+- Ejecutar suites de integración y e2e, reportar fallos si aparecen.
+- Continuar refactorizaciones orientadas a inyección de dependencias para la DB si lo deseas.
+
+Registro de cambios recientes:
+
+- Se añadieron los módulos `src/infra/webhookVerifier.ts` y `src/infra/inMemoryDb.ts`.
+- Se actualizó `src/infra/db.ts` para usar el fallback en memoria.
+- Se actualizó `src/routes/webhooks.ts` para usar el verificador centralizado.
+- Se ajustaron tests y configuración para reducir flakiness.
+
+Sesión pausada por el usuario. Reanudar mañana según indicaciones.
