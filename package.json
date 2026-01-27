@@ -1,0 +1,40 @@
+{
+  "name": "gitspy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "test:webhook": "node scripts/test_webhook.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@octokit/rest": "^19.0.0",
+    "body-parser": "^1.20.2",
+    "bullmq": "^2.12.0",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "ioredis": "^5.3.2"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^8.0.1"
+  },
+  "promDependencies": {
+    "prom-client": "^14.1.0"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^8.0.1"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.1",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.0.4",
+    "jest": "^29.6.1",
+    "ts-jest": "^29.1.0",
+    "@types/jest": "^29.5.3"
+  }
+}

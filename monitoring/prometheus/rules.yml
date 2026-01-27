@@ -1,0 +1,29 @@
+groups:
+  - name: gitspy.rules
+    rules:
+      - alert: GitSpyRateLimitLow
+        expr: gitspy_rate_remaining < 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GitHub rate limit low ({{ $value }})"
+          description: "Remaining GitHub API tokens: {{ $value }}. Instance: {{ $labels.instance }}"
+
+      - alert: GitSpyQueueBacklog
+        expr: gitspy_queue_waiting > 50
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "GitSpy queue backlog high"
+          description: "Jobs waiting in queue: {{ $value }} on instance {{ $labels.instance }}"
+
+      - alert: GitSpyQueueFailures
+        expr: gitspy_queue_failed > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GitSpy queue has failures"
+          description: "There are failed jobs ({{ $value }}) in the queue on instance {{ $labels.instance }}"
