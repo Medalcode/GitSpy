@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "builds": [
+    { "src": "api/**/*.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "status": 404, "headers": { "x-gitspy": "api-only" } }
+  ]
+}

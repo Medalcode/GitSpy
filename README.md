@@ -252,6 +252,17 @@ GitSpy/
 # Desarrollo
 npm run dev              # Hot reload con ts-node-dev
 
+## Vercel deployment (API-only)
+
+- This project is deployed as API-only on Vercel. Only files under the `api/` directory are treated as serverless functions.
+- The Vercel configuration (`vercel.json`) enforces that `/api/**` is routed to the serverless functions and that all other paths return a 404 status intentionally. This prevents any accidental execution of a legacy Node server at the root path.
+
+- Expected behavior on Vercel:
+  - `GET /api/repos/:owner/:repo/kanban` -> serverless function (200/4xx/5xx depending on request)
+  - Any non-`/api` path (including `/`) -> `404 Not Found` (intentional)
+
+If you need to run the legacy Express server locally for development or tests, use the dev script (`npm run dev`) which relies on `src/index.ts`. That code is excluded from Vercel deployments via `.vercelignore` and `vercel.json` to keep production API-only.
+
 # Worker (dev): iniciar worker en proceso separado
 npm run start:worker     # Start worker process (ts-node)
 
