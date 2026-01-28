@@ -25,6 +25,9 @@ app.use(bodyParser.json())
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }))
 
+// Simple root handler to avoid 500 on '/'
+app.get('/', (_req, res) => res.send('GitSpy API is running'))
+
 app.use('/repositories', repositoriesRouter)
 app.use('/webhooks', webhooksRouter)
 app.use('/metrics', metricsRouter)
@@ -34,15 +37,23 @@ const port = process.env.PORT || 3000
 
 // Inicializar recursos asíncronos (colas, redis, etc.)
 let server: any = null
-// Start queue connection but do not start the worker inside the HTTP server process
-initQueue({ startWorker: false }).then(() => {
+// In serverless environments (like Vercel) avoid starting long-lived connections.
+// Vercel sets process.env.VERCEL= '1' during runtime.
+if (process.env.VERCEL) {
   server = app.listen(port, () => {
-    console.log(`GitSpy API listening on port ${port}`)
+    console.log(`GitSpy API listening on port ${port} (serverless mode)`) 
   })
-}).catch(err => {
-  console.error('Failed to initialize queue:', err)
-  process.exit(1)
-})
+} else {
+  // Start queue connection but do not start the worker inside the HTTP server process
+  initQueue({ startWorker: false }).then(() => {
+    server = app.listen(port, () => {
+      console.log(`GitSpy API listening on port ${port}`)
+    })
+  }).catch(err => {
+    console.error('Failed to initialize queue:', err)
+    process.exit(1)
+  })
+}
 
 async function shutdown(signal?: string) {
   console.log('Shutting down', signal || '')
