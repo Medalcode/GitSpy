@@ -1,7 +1,17 @@
 import crypto from 'crypto'
 
 export function verifySignature(secret: string, body: string, signature: string | undefined) {
-  if (!secret) return true // if not configured, skip (dev)
+  const isProd = process.env.NODE_ENV === 'production'
+  // In production, require a configured secret. In non-production (dev/test)
+  // allow empty secret for convenience (tests/dev environments set it explicitly).
+  if (!secret) {
+    if (isProd) {
+      console.error('GITHUB_WEBHOOK_SECRET not configured in production; rejecting webhook')
+      return false
+    }
+    return true
+  }
+
   if (!signature) return false
 
   // Expect signature in format: sha256=<hex>

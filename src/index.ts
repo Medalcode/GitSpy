@@ -7,8 +7,17 @@ import metricsRouter from './routes/metrics'
 import { initQueue, closeQueue } from './infra/queue'
 import { closeDb } from './infra/db'
 import { closeRedis } from './infra/cache'
+import { config } from './config'
 
 dotenv.config()
+
+// Validate required environment in production to avoid accidental insecure deployments
+if (config.env === 'production') {
+  if (!config.webhookSecret) {
+    console.error('Missing required environment variable: GITHUB_WEBHOOK_SECRET (required in production)')
+    process.exit(1)
+  }
+}
 
 const app = express()
 app.use(bodyParser.json())
@@ -23,7 +32,8 @@ const port = process.env.PORT || 3000
 
 // Inicializar recursos asíncronos (colas, redis, etc.)
 let server: any = null
-initQueue().then(() => {
+// Start queue connection but do not start the worker inside the HTTP server process
+initQueue({ startWorker: false }).then(() => {
   server = app.listen(port, () => {
     console.log(`GitSpy API listening on port ${port}`)
   })

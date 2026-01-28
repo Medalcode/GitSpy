@@ -16,10 +16,17 @@ router.post('/', express.text({ type: '*/*' }), async (req, res) => {
 
   const event = req.header('x-github-event') || 'unknown'
   const payload = parseWebhookPayload(body)
+  const delivery = req.header('x-github-delivery')
+  let eventId = delivery
+  if (!eventId) {
+    const h = crypto.createHash('sha256')
+    h.update((event || '') + '|' + body)
+    eventId = h.digest('hex')
+  }
 
   // Enqueue the raw event for asynchronous processing
   try {
-    await enqueueEvent({ event, payload })
+    await enqueueEvent({ event, payload, event_id: eventId })
   } catch (e) {
     return res.status(500).json({ error: 'enqueue failed' })
   }

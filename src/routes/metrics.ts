@@ -1,7 +1,7 @@
 import express from 'express'
 import { getState as getRateState } from '../infra/rateLimiter'
 import { getQueueCounts } from '../infra/queue'
-import client from 'prom-client'
+import metrics, { getRegister } from '../infra/metrics'
 
 const router = express.Router()
 
@@ -24,8 +24,11 @@ router.get('/', async (_req, res) => {
 })
 
 // Prometheus metrics
-const register = new client.Registry()
-client.collectDefaultMetrics({ register })
+const register = getRegister()
+
+// Queue gauges are created ad-hoc per-process in this endpoint using the
+// shared registry so they are exposed alongside other metrics.
+const client = require('prom-client')
 
 const gaugeRateRemaining = new client.Gauge({ name: 'gitspy_rate_remaining', help: 'GitHub rate limit remaining', registers: [register] })
 const gaugeRateReset = new client.Gauge({ name: 'gitspy_rate_reset_unix', help: 'GitHub rate limit reset (unix seconds)', registers: [register] })

@@ -243,6 +243,58 @@ GitSpy/
 # Desarrollo
 npm run dev              # Hot reload con ts-node-dev
 
+# Worker (dev): iniciar worker en proceso separado
+npm run start:worker     # Start worker process (ts-node)
+
+## Autoscaler (optional)
+
+The repository includes a simple autoscaler logic decoupled from runtime. It polls Prometheus-style metrics endpoints and decides desired worker replicas based on: backlog (`gitspy_queue_waiting`), job latency (`gitspy_job_duration_ms`), and product Kanban signals (`kanban.json`). It delegates scaling to adapters (noop, k8s via `kubectl`, or a custom script).
+
+Run locally:
+
+```bash
+# default (noop scaler):
+npm run autoscaler
+
+# use k8s scaler (requires kubectl and K8S_DEPLOYMENT env set):
+SCALER=k8s K8S_DEPLOYMENT=my-deployment K8S_NAMESPACE=default npm run autoscaler
+
+# use script scaler:
+SCALER=script SCALE_SCRIPT=./scripts/scale_my_cluster.sh npm run autoscaler
+```
+
+Configuration is available via environment variables or CLI flags (see `scripts/autoscaler.js`).
+
+## Progressive migration: SQLite → Postgres
+
+This repo includes tooling and a safe plan to migrate from the default SQLite store to Postgres with zero downtime.
+
+Key ideas:
+- Use `DB_MODE=dual` to enable dual-write (writes go to both SQLite and Postgres) while the system runs.
+- Use `scripts/migrate_sqlite_to_postgres.js` to copy historical data from SQLite to Postgres in a transactional, idempotent way.
+- Validate counts and samples with `scripts/validate_consistency.js`.
+- Once you're confident, switch `DB_MODE=postgres` (or point `SQLITE_PATH` away) to cut over reads to Postgres.
+
+Steps (summary):
+1. Provision Postgres and set `PG_CONN`.
+2. Start app with `DB_MODE=dual` so new writes go to both DBs.
+3. Run `node scripts/migrate_sqlite_to_postgres.js --pg="postgres://..."` to copy historical data.
+4. Run `node scripts/validate_consistency.js --pg="postgres://..."` and/or `--sqlite=...` to validate counts and sample mismatches.
+5. Run replay validation (optional) with `scripts/replay_events.js --out=... --dry-run` reading from Postgres if needed.
+6. When satisfied, change `DB_MODE=postgres` and restart services (reads will now come from Postgres). Keep SQLite as fallback for a rollback path.
+
+Commands examples:
+```bash
+# dual-write mode (start app):
+DB_MODE=dual PG_CONN="postgres://user:pass@host:5432/db" npm run dev
+
+# migrate historical data
+node scripts/migrate_sqlite_to_postgres.js --pg="postgres://user:pass@host:5432/db"
+
+# validate
+node scripts/validate_consistency.js --pg="postgres://user:pass@host:5432/db"
+```
+
 # Build
 npm run build            # Compilar TypeScript
 
