@@ -36,43 +36,49 @@ export default async function handler(req, res) {
     const owner = req.query.owner || (req.query[0] || "").split("/")[0];
     const repo = req.query.repo || (req.query[0] || "").split("/")[1];
     if (!owner || !repo)
-      return res.status(400).json({ error: "owner and repo required in path" });
+      return res.status(400).json({ error: { code: 'bad_request', message: 'owner and repo required in path', stage: 'internal' } });
 
     // Dynamically import parser from api/_lib (included with function bundle)
-    const parserMod = await import(new URL('../_lib/bitacoraParser.js', import.meta.url).href);
-    const parseBitacora = parserMod.parseBitacora || (parserMod.default && parserMod.default.parseBitacora) || parserMod.default;
-    if (!parseBitacora) {
-      console.error('parseBitacora not available in api/_lib/bitacoraParser.js', Object.keys(parserMod));
-      return res.status(500).json({ error: 'parser_unavailable' });
+    let parseBitacora = null;
+    try {
+      const parserMod = await import(new URL('../_lib/bitacoraParser.js', import.meta.url).href);
+      parseBitacora = parserMod.parseBitacora || (parserMod.default && parserMod.default.parseBitacora) || parserMod.default;
+      if (!parseBitacora) throw new Error('parseBitacora export not found');
+    } catch (e) {
+      console.error('parser import failed', e);
+      return res.status(500).json({ error: { code: 'parser_import_failed', message: String((e && e.message) || e), stage: 'internal' } });
     }
 
+    // Fetch GitHub content (guarded)
+    let result;
+    try {
+      result = await fetchBitacoraFromGitHub(owner, repo);
+    } catch (e) {
+      console.error('fetchBitacoraFromGitHub failed', e);
+      return res.status(502).json({ error: { code: 'fetch_failed', message: String((e && e.message) || e), stage: 'fetch_github' } });
+    }
 
-    const result = await fetchBitacoraFromGitHub(owner, repo);
-    if (result.notFound)
-      return res.status(404).json({ error: "repo_or_file_not_found" });
-    if (result.rateLimited)
-      return res
-        .status(429)
-        .json({ error: "rate_limited", detail: result.text });
-    if (result.error)
-      return res
-        .status(result.status || 500)
-        .json({ error: "github_error", detail: result.error });
+    if (result.notFound) return res.status(404).json({ error: { code: 'not_found', message: 'repo_or_file_not_found', stage: 'fetch_github' } });
+    if (result.rateLimited) return res.status(429).json({ error: { code: 'rate_limited', message: result.text || 'rate limited', stage: 'fetch_github' } });
+    if (result.error) return res.status(result.status || 500).json({ error: { code: 'github_error', message: result.error || 'github error', stage: 'fetch_github' } });
 
-    const md = result.md || "";
-    const kanban = parseBitacora(md);
+    const md = result.md || '';
+    let kanban;
+    try {
+      kanban = parseBitacora(md);
+    } catch (e) {
+      console.error('parseBitacora failed', e);
+      return res.status(500).json({ error: { code: 'parse_failed', message: String((e && e.message) || e), stage: 'parse_bitacora' } });
+    }
+
     const response = {
       repo: `${owner}/${repo}`,
       kanban,
-      meta: {
-        cached: false,
-        fetchedAt: new Date().toISOString(),
-        etag: result.sha || null,
-      },
+      meta: { cached: false, fetchedAt: new Date().toISOString(), etag: result.sha || null }
     };
     return res.status(200).json(response);
   } catch (err) {
-    console.error("serverless kanban error", err);
-    return res.status(500).json({ error: "internal_error" });
+    console.error('serverless kanban unexpected error', err);
+    return res.status(500).json({ error: { code: 'internal_error', message: String((err && err.message) || err), stage: 'internal' } });
   }
 }
