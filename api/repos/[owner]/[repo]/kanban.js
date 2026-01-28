@@ -1,4 +1,4 @@
-import { parseBitacora } from '../../../../src/bitacoraParser.js';
+// Dynamically import parser from local api/_lib to ensure availability in Vercel runtime
 
 // ESM-friendly Vercel Serverless Function
 // Uses static import for correct bundling.
@@ -38,7 +38,13 @@ export default async function handler(req, res) {
     if (!owner || !repo)
       return res.status(400).json({ error: "owner and repo required in path" });
 
-    // Parser is imported statically
+    // Dynamically import parser from api/_lib (included with function bundle)
+    const parserMod = await import(new URL('../_lib/bitacoraParser.js', import.meta.url).href);
+    const parseBitacora = parserMod.parseBitacora || (parserMod.default && parserMod.default.parseBitacora) || parserMod.default;
+    if (!parseBitacora) {
+      console.error('parseBitacora not available in api/_lib/bitacoraParser.js', Object.keys(parserMod));
+      return res.status(500).json({ error: 'parser_unavailable' });
+    }
 
 
     const result = await fetchBitacoraFromGitHub(owner, repo);
