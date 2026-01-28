@@ -1,0 +1,5 @@
+# Prevent legacy Node backend from being included in Vercel deployments
+# Exclude the server entrypoint and Express routes implemented under src
+src/index.ts
+src/routes/**
+dist/index.js
