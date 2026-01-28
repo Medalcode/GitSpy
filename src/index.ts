@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import repositoriesRouter from './routes/repositories'
 import webhooksRouter from './routes/webhooks'
 import metricsRouter from './routes/metrics'
+import kanbanRouter from './routes/kanban'
 import { initQueue, closeQueue } from './infra/queue'
 import { closeDb } from './infra/db'
 import { closeRedis } from './infra/cache'
@@ -27,6 +28,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }))
 app.use('/repositories', repositoriesRouter)
 app.use('/webhooks', webhooksRouter)
 app.use('/metrics', metricsRouter)
+app.use('/repos', kanbanRouter)
 
 const port = process.env.PORT || 3000
 

@@ -62,3 +62,10 @@ export async function fetchRepo(owner: string, repo: string) {
   )
 }
 
+// Fetch a file content from repository root path (contents API)
+export async function fetchFile(owner: string, repo: string, path: string, ref?: string) {
+  return requestWithRateLimit((client) =>
+    client.request('GET /repos/{owner}/{repo}/contents/{path}', { owner, repo, path, ref })
+  )
+}
+
