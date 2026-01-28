@@ -279,4 +279,4 @@ function parseBitacora(mdContent) {
   return buildKanban(mdContent);
 }
 
-module.exports = { parseBitacora, tokenizeLines, parseGlobalMetadata, groupSections, parseFeatureLine, buildKanban };
+export { parseBitacora, tokenizeLines, parseGlobalMetadata, groupSections, parseFeatureLine, buildKanban };

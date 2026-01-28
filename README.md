@@ -108,13 +108,13 @@ npm run test:ci
 
 **Estado actual: 70/70 tests unitarios pasando ✅**
 
-| Componente | Cobertura | Tests | Estado |
-|------------|-----------|-------|--------|
-| Rate Limiter | 100% | 15 | ✅ Crítico |
-| Database | 95% | 18 | ✅ |
-| Webhooks | 100% | 12 | ✅ Seguridad |
-| GitHub Adapter | 90% | 14 | ✅ |
-| Integration Flow | 85% | 11 | ✅ |
+| Componente       | Cobertura | Tests | Estado       |
+| ---------------- | --------- | ----- | ------------ |
+| Rate Limiter     | 100%      | 15    | ✅ Crítico   |
+| Database         | 95%       | 18    | ✅           |
+| Webhooks         | 100%      | 12    | ✅ Seguridad |
+| GitHub Adapter   | 90%       | 14    | ✅           |
+| Integration Flow | 85%       | 11    | ✅           |
 
 ### Componentes Críticos Testeados
 
@@ -166,6 +166,14 @@ docker run -d -p 6379:6379 redis:7-alpine
 
 Variables de entorno ya configuradas para apuntar al servicio `redis`.
 
+## 🚀 Despliegue en Vercel (Serverless)
+
+El proyecto incluye soporte experimental para despliegue en Vercel, limitado a funcionalidades stateless (como el visualizador de Kanban).
+
+- **Demo**: [https://vercel.com/medalcode-projects/git-spy](https://vercel.com/medalcode-projects/git-spy)
+- **Funcionalidad Soportada**: API de lectura (`/api/repos/...`), Visualizador Kanban.
+- **Limitaciones**: No soporta Workers (cola de eventos) ni persistencia local (SQLite/Redis) en este modo.
+
 ## 📊 Monitoreo
 
 ### Métricas Prometheus
@@ -173,6 +181,7 @@ Variables de entorno ya configuradas para apuntar al servicio `redis`.
 La app expone métricas en `/metrics/prom`:
 
 **Métricas personalizadas:**
+
 - `gitspy_rate_remaining` - Tokens restantes del rate limit de GitHub
 - `gitspy_rate_reset_unix` - Timestamp del reset del rate limit
 - `gitspy_queue_waiting` - Trabajos en espera
@@ -184,10 +193,10 @@ La app expone métricas en `/metrics/prom`:
 
 ```yaml
 scrape_configs:
-  - job_name: 'gitspy'
+  - job_name: "gitspy"
     static_configs:
-      - targets: ['localhost:3000']
-    metrics_path: '/metrics/prom'
+      - targets: ["localhost:3000"]
+    metrics_path: "/metrics/prom"
 ```
 
 ### Reglas de Alerta
@@ -239,7 +248,7 @@ GitSpy/
 
 ### Scripts Disponibles
 
-```bash
+````bash
 # Desarrollo
 npm run dev              # Hot reload con ts-node-dev
 
@@ -261,7 +270,7 @@ SCALER=k8s K8S_DEPLOYMENT=my-deployment K8S_NAMESPACE=default npm run autoscaler
 
 # use script scaler:
 SCALER=script SCALE_SCRIPT=./scripts/scale_my_cluster.sh npm run autoscaler
-```
+````
 
 Configuration is available via environment variables or CLI flags (see `scripts/autoscaler.js`).
 
@@ -270,12 +279,14 @@ Configuration is available via environment variables or CLI flags (see `scripts/
 This repo includes tooling and a safe plan to migrate from the default SQLite store to Postgres with zero downtime.
 
 Key ideas:
+
 - Use `DB_MODE=dual` to enable dual-write (writes go to both SQLite and Postgres) while the system runs.
 - Use `scripts/migrate_sqlite_to_postgres.js` to copy historical data from SQLite to Postgres in a transactional, idempotent way.
 - Validate counts and samples with `scripts/validate_consistency.js`.
 - Once you're confident, switch `DB_MODE=postgres` (or point `SQLITE_PATH` away) to cut over reads to Postgres.
 
 Steps (summary):
+
 1. Provision Postgres and set `PG_CONN`.
 2. Start app with `DB_MODE=dual` so new writes go to both DBs.
 3. Run `node scripts/migrate_sqlite_to_postgres.js --pg="postgres://..."` to copy historical data.
@@ -284,6 +295,7 @@ Steps (summary):
 6. When satisfied, change `DB_MODE=postgres` and restart services (reads will now come from Postgres). Keep SQLite as fallback for a rollback path.
 
 Commands examples:
+
 ```bash
 # dual-write mode (start app):
 DB_MODE=dual PG_CONN="postgres://user:pass@host:5432/db" npm run dev
@@ -296,19 +308,24 @@ node scripts/validate_consistency.js --pg="postgres://user:pass@host:5432/db"
 ```
 
 # Build
-npm run build            # Compilar TypeScript
+
+npm run build # Compilar TypeScript
 
 # Producción
-npm start                # Ejecutar build
+
+npm start # Ejecutar build
 
 # Tests
-npm test                 # Todos los tests
-npm run test:unit        # Solo unitarios
-npm run test:coverage    # Con coverage report
+
+npm test # Todos los tests
+npm run test:unit # Solo unitarios
+npm run test:coverage # Con coverage report
 
 # Utilidades
-npm run test:webhook     # Test manual de webhook
-```
+
+npm run test:webhook # Test manual de webhook
+
+````
 
 ### Prerequisitos para Tests de Integración
 
@@ -318,13 +335,14 @@ docker run -d -p 6379:6379 redis:7-alpine
 
 # Ejecutar tests de integración
 npm run test:integration
-```
+````
 
 ## 📝 Uso de la API
 
 ### Endpoints
 
 #### GET /health
+
 Health check endpoint
 
 ```bash
@@ -332,6 +350,7 @@ curl http://localhost:3000/health
 ```
 
 #### POST /webhooks
+
 Recibir webhooks de GitHub
 
 ```bash
@@ -343,6 +362,7 @@ curl -X POST http://localhost:3000/webhooks \
 ```
 
 #### GET /repositories/:owner/:repo
+
 Obtener información de repositorio (con cache multi-capa)
 
 ```bash
@@ -361,23 +381,28 @@ Respuesta (ejemplo):
 
 ```json
 {
-   "repo": "medalcode/GitSpy",
-   "kanban": { /* objeto Kanban canónico */ },
-   "meta": { "cached": false, "fetchedAt": "2026-01-27T12:00:00Z" }
+  "repo": "medalcode/GitSpy",
+  "kanban": {
+    /* objeto Kanban canónico */
+  },
+  "meta": { "cached": false, "fetchedAt": "2026-01-27T12:00:00Z" }
 }
 ```
 
 Notas:
+
 - El endpoint usa el contenido de `Bitacora.md` y retorna un JSON estable y versionado.
 - Soporta `ETag` y responde `304` cuando el contenido no ha cambiado.
 - Posibles códigos de respuesta: `200`, `304`, `404` (repo/file not found), `429` (rate limit), `500` (internal error).
 
 **Headers de respuesta:**
+
 - `X-Cache: HIT` - Servido desde Redis
 - `X-Cache: DB` - Servido desde SQLite
 - `X-Cache: GITHUB` - Fetched desde GitHub API
 
 #### GET /metrics/prom
+
 Métricas Prometheus
 
 ```bash

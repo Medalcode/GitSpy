@@ -1,10 +1,6 @@
 import { fetchFile } from '../infra/githubAdapter'
 import { config } from '../config'
-import { createRequire } from 'module'
-
-const require = createRequire(import.meta.url)
-// parser is implemented as CommonJS in src/bitacoraParser.js
-const { parseBitacora } = require('../bitacoraParser.js')
+import { parseBitacora } from '../bitacoraParser.js'
 
 type CacheEntry = {
   kanban: any

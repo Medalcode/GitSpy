@@ -24,10 +24,12 @@ Resumen de acciones realizadas hoy:
   - Las suites de integración y e2e fueron inspeccionadas; los cambios eliminaron la causa principal (`import.meta` / fallback DB).
 
 Notas y recomendaciones:
+
 - Mantener los tests como contrato: seguir ejecutando la suite completa tras refactors.
 - Más adelante: considerar inyectar la dependencia de DB (DI) en lugar del fallback runtime para pruebas más limpias.
 
 Estado actual:
+
 - Todos los tests unitarios pasan.
 - Cambios añadidos al repo y empujados al remoto (consulte el commit asociado).
 
@@ -80,6 +82,7 @@ Notas operativas:
 --
 
 Documento actualizado automáticamente por el asistente.
+
 # Bitácora - 27 de enero de 2026
 
 Resumen de acciones realizadas hoy:
@@ -106,10 +109,12 @@ Resumen de acciones realizadas hoy:
   - Las suites de integración y e2e fueron inspeccionadas; los cambios eliminaron la causa principal (`import.meta` / fallback DB).
 
 Notas y recomendaciones:
+
 - Mantener los tests como contrato: seguir ejecutando la suite completa tras refactors.
 - Más adelante: considerar inyectar la dependencia de DB (DI) en lugar del fallback runtime para pruebas más limpias.
 
 Estado actual:
+
 - Todos los tests unitarios pasan.
 - Cambios añadidos al repo y empujados al remoto (consulte el commit asociado).
 
@@ -117,6 +122,7 @@ Estado actual:
 Documento generado automáticamente por el asistente el 27/01/2026
 
 ---
+
 Estado al final del día (27/01/2026):
 
 - Tests unitarios: todos pasan (70/70).
@@ -137,3 +143,64 @@ Registro de cambios recientes:
 - Se ajustaron tests y configuración para reducir flakiness.
 
 Sesión pausada por el usuario. Reanudar mañana según indicaciones.
+
+---
+
+## Actualización: Despliegue en Vercel (27/01/2026)
+
+Se ha realizado el despliegue del proyecto en Vercel.
+
+- **URL del Proyecto**: [https://vercel.com/medalcode-projects/git-spy](https://vercel.com/medalcode-projects/git-spy)
+- **Estado**: Desplegado.
+
+### Ajustes para Compatibilidad Serverless:
+
+- Se corrigió `api/repos/[owner]/[repo]/kanban.js` eliminando código CommonJS duplicado que causaría conflictos con la configuración ESM (`"type": "module"`) requerida por Vercel.
+- La funcionalidad de **Kanban Viewer** (`/api/repos/:owner/:repo/kanban`) está operativa como Serverless Function.
+
+### Notas Importantes sobre el Despliegue en Vercel:
+
+1. **Funcionalidad Limitada**: Vercel es una plataforma Serverless.
+   - ✅ **Funcionará**: El visualizador de Kanban y endpoints que solo consultan la API de GitHub (stateless).
+   - ⚠️ **No funcionará**: Background Workers (BullMQ), Persistencia local (SQLite), Cache persistente (Redis local).
+2. **Variables de Entorno**: Asegúrate de configurar `GITHUB_TOKEN` en los _Project Settings_ de Vercel para aumentar los límites de la API de GitHub.
+
+### Próximos pasos recomendados:
+
+- Si se necesita persistencia completa o workers, considerar desplegar el contenedor Docker en un servicio como Railway, Fly.io o Google Cloud Run.
+- Para Vercel, mantener el uso enfocado en el visualizador de Kanban y funciones stateless.
+
+---
+
+## Cierre de Sesión: Despliegue y Correcciones Vercel (27/01/2026)
+
+### Resumen de Cambios Técnicos
+
+Se realizaron ajustes críticos para permitir el despliegue de la funcionalidad Kanban en la infraestructura Serverless de Vercel (Edge/Node.js Runtimes):
+
+1.  **Migración a ES Modules (ESM)**:
+    - Se refactorizó `src/bitacoraParser.js` de CommonJS a ESM para alinearse con `package.json` (`"type": "module"`).
+    - Se actualizaron los imports en `src/services/kanbanService.ts` y `api/repos/[owner]/[repo]/kanban.js`.
+2.  **Serverless Function Optimization**:
+    - En `api/repos/[owner]/[repo]/kanban.js`, se reemplazó la importación dinámica por una estática. Esto permite que el bundler de Vercel detecte y empaquete correctamente las dependencias (tree-shaking/tracing).
+3.  **Despliegue Exitoso**:
+    - Proyecto desplegado en: [https://vercel.com/medalcode-projects/git-spy](https://vercel.com/medalcode-projects/git-spy)
+    - El endpoint `/api/repos/:owner/:repo/kanban` es funcional en entorno serverless.
+
+### Estado de Tareas
+
+- [x] Implementar parser Kanban (`src/bitacoraParser.js`).
+- [x] API Endpoint para Kanban.
+- [x] Cliente visual `autokanban` (disponible en ruta estática o separado).
+- [x] **Despliegue en Vercel** (Funcionalidad stateless).
+- [x] Corrección de compatibilidad ESM/CommonJS.
+
+### Pendientes y Roadmap
+
+- [ ] **Tests**: Añadir tests de integración específicos para el endpoint Kanban.
+- [ ] **Persistencia**: Migrar SQLite a PostgreSQL para soportar persistencia en entornos efímeros (como Vercel/Cloud Run) si se desea usar la funcionalidad completa de GitSpy (webhooks, workers).
+- [ ] **Auth**: Implementar autenticación básica para proteger el endpoint de Kanban si se hace público.
+
+### Notas para el Usuario
+
+- La versión actual en Vercel es **Stateless**. Solo funcionan los endpoints de lectura directa a GitHub (como el Kanban). Los Webhooks y Workers de fondo no se ejecutarán correctamente en este entorno específico sin una DB externa.
