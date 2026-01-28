@@ -349,6 +349,29 @@ Obtener información de repositorio (con cache multi-capa)
 curl http://localhost:3000/repositories/octocat/Hello-World
 ```
 
+#### GET /repos/:owner/:repo/kanban
+
+Obtener el Kanban canónico generado a partir de `Bitacora.md` en la raíz del repositorio.
+
+```bash
+curl http://localhost:3000/repos/medalcode/GitSpy/kanban
+```
+
+Respuesta (ejemplo):
+
+```json
+{
+   "repo": "medalcode/GitSpy",
+   "kanban": { /* objeto Kanban canónico */ },
+   "meta": { "cached": false, "fetchedAt": "2026-01-27T12:00:00Z" }
+}
+```
+
+Notas:
+- El endpoint usa el contenido de `Bitacora.md` y retorna un JSON estable y versionado.
+- Soporta `ETag` y responde `304` cuando el contenido no ha cambiado.
+- Posibles códigos de respuesta: `200`, `304`, `404` (repo/file not found), `429` (rate limit), `500` (internal error).
+
 **Headers de respuesta:**
 - `X-Cache: HIT` - Servido desde Redis
 - `X-Cache: DB` - Servido desde SQLite
