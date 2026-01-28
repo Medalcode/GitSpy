@@ -44,7 +44,7 @@ function initPostgresPool() {
     pgPool = new Pool({ connectionString: PG_CONN })
     return pgPool
   } catch (e) {
-    console.warn('pg not available or failed to init Postgres pool', e.message || e)
+    console.warn('pg not available or failed to init Postgres pool', (e as any)?.message || e)
     pgPool = null
     return null
   }
@@ -103,7 +103,7 @@ async function upsertRepositoryPostgres(fullName: string, owner: string, dataObj
     return res.rows[0]
   } catch (e) {
     try { await client.query('ROLLBACK') } catch (_) { /* ignore */ }
-    console.warn('Postgres upsertRepository failed', e.message || e)
+    console.warn('Postgres upsertRepository failed', (e as any)?.message || e)
     return null
   } finally {
     client.release()
@@ -130,7 +130,7 @@ async function saveEventPostgres(eventType: string, payload: any) {
     return res.rows[0]
   } catch (e) {
     try { await client.query('ROLLBACK') } catch (_) { /* ignore */ }
-    console.warn('Postgres saveEvent failed', e.message || e)
+    console.warn('Postgres saveEvent failed', (e as any)?.message || e)
     return null
   } finally {
     client.release()
