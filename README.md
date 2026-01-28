@@ -1,4 +1,7 @@
 # GitSpy
+GitSpy es una API serverless enfocada en exponer datos y operaciones mediante funciones en `/api/**`.
+
+- Solo punto de entrada en producción: `/api/**` (serverless). No existe un backend Node tradicional ni UI en la raíz (`/`), que en producción devuelve intencionalmente 404.
 
 API intermedia que centraliza y optimiza llamadas a GitHub con sistema de caché, cola de eventos y rate limiting inteligente.
 
