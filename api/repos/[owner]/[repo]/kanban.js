@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     // Dynamically import parser from api/_lib (included with function bundle)
     let parseBitacora = null;
     try {
-      const parserMod = await import(new URL('../_lib/bitacoraParser.js', import.meta.url).href);
+      const parserMod = await import(new URL('../../../_lib/bitacoraParser.js', import.meta.url).href);
       parseBitacora = parserMod.parseBitacora || (parserMod.default && parserMod.default.parseBitacora) || parserMod.default;
       if (!parseBitacora) throw new Error('parseBitacora export not found');
     } catch (e) {
