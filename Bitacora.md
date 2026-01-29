@@ -204,3 +204,40 @@ Se realizaron ajustes críticos para permitir el despliegue de la funcionalidad 
 ### Notas para el Usuario
 
 - La versión actual en Vercel es **Stateless**. Solo funcionan los endpoints de lectura directa a GitHub (como el Kanban). Los Webhooks y Workers de fondo no se ejecutarán correctamente en este entorno específico sin una DB externa.
+
+## Sesión del 28 de Enero 2026 - Continuación
+
+- Se detectó la falta de archivos fuente críticos ('src/routes/*', 'src/index.ts') necesarios para la ejecución de tests.
+- Se reconstruyeron los archivos faltantes basados en los tests existentes y la lógica documentada:
+  - 'src/routes/webhooks.ts'
+  - 'src/routes/repositories.ts'
+  - 'src/routes/kanban.ts'
+  - 'src/index.ts'
+- Se ejecutaron tests unitarios: Mayoría pasando, con ajustes menores requeridos en casos borde de webhooks.
+- Se intentó ejecutar tests de integración: Fallaron debido a la falta de una instancia de Redis en ejecución (Docker daemon no accesible/controlable).
+- Estado: Código fuente restaurado, tests unitarios operativos, tests de integración bloqueados por infraestructura.
+
+### Registro actualizado: 28 de enero de 2026
+
+- Se corrigió `api/repos/[owner]/[repo]/kanban.js` para mejorar logging y respuestas de error (incluye `status` y `contentType` en errores GitHub, advertencia cuando `GITHUB_TOKEN` no está configurado).
+- Se añadió manejo detallado de errores en import dinámico del parser y mejor trazabilidad de stacks en logs de producción.
+- Se actualizó `vercel.json` a `version: 2` y se aplicaron reglas de despliegue API-only para evitar subir el legacy Express server.
+
+Estado de tareas (actual):
+
+- [x] Implementar parser `src/bitacoraParser.js` y empaquetarlo en `api/_lib/bitacoraParser.js` para Serverless.
+- [x] Añadir handler Serverless `api/repos/[owner]/[repo]/kanban.js` y `api/repos/index.js`.
+- [x] Ajustar `vercel.json` y añadir `.vercelignore` para desplegar solo `/api`.
+- [x] Agregar logs y respuestas de error mejoradas al handler Kanban.
+- [ ] Capturar stack trace en producción (tail logs) para reproducir y corregir el 500 reportado por AutoKanban.
+- [ ] Añadir tests de integración para el endpoint Kanban.
+
+Recomendaciones y pasos siguientes:
+
+- Si observas `Error: GITSPY API error: 500` en AutoKanban: habilita `GITHUB_TOKEN` en Vercel Project Settings y reproduce la operación mientras hago `npx vercel inspect --logs --wait <deployment>` para capturar el stack trace.
+- Añadir variable de entorno `GITHUB_TOKEN` es crítico para evitar 403/429 desde la API de GitHub.
+- Añadir CI step que ejecute `parseBitacora` en PRs como linter para detectar errores de formato.
+
+---
+
+Documento actualizado por el asistente el 28/01/2026

@@ -1,7 +1,7 @@
 # GitSpy
-GitSpy es una API serverless enfocada en exponer datos y operaciones mediante funciones en `/api/**`.
+GitSpy es una API-first, serverless project enfocado en exponer datos y operaciones mediante funciones en `/api/**`.
 
-- Solo punto de entrada en producción: `/api/**` (serverless). No existe un backend Node tradicional ni UI en la raíz (`/`), que en producción devuelve intencionalmente 404.
+- Producción: solo `api/**` (serverless). El código legacy de Express se mantiene para desarrollo local pero está excluido del bundle de producción; la raíz (`/`) devuelve 404 intencionalmente en producción.
 
 API intermedia que centraliza y optimiza llamadas a GitHub con sistema de caché, cola de eventos y rate limiting inteligente.
 
@@ -26,7 +26,7 @@ Edita `.env` con tus credenciales:
 
 ```env
 PORT=3000
-GITHUB_TOKEN=your_github_token_here
+GITHUB_TOKEN=your_github_token_here  # REQUIRED for production on Vercel: set in Project Settings
 GITHUB_WEBHOOK_SECRET=your_webhook_secret
 REDIS_URL=redis://localhost:6379
 QUEUE_NAME=events
