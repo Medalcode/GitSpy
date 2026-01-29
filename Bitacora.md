@@ -207,7 +207,7 @@ Se realizaron ajustes críticos para permitir el despliegue de la funcionalidad 
 
 ## Sesión del 28 de Enero 2026 - Continuación
 
-- Se detectó la falta de archivos fuente críticos ('src/routes/*', 'src/index.ts') necesarios para la ejecución de tests.
+- Se detectó la falta de archivos fuente críticos ('src/routes/\*', 'src/index.ts') necesarios para la ejecución de tests.
 - Se reconstruyeron los archivos faltantes basados en los tests existentes y la lógica documentada:
   - 'src/routes/webhooks.ts'
   - 'src/routes/repositories.ts'
@@ -241,3 +241,52 @@ Recomendaciones y pasos siguientes:
 ---
 
 Documento actualizado por el asistente el 28/01/2026
+
+---
+
+## Actualización: Autenticación y Despliegue (29 de enero de 2026)
+
+Se realizó la autenticación en Vercel CLI utilizando el token proporcionado por el usuario y se procedió al despliegue del proyecto.
+
+- **Acción**: Autenticación exitosa como usuario `tryh4rdcode`.
+- **Acción**: Despliegue a producción en Vercel.
+- **Resultado**: Proyecto desplegado correctamente.
+  - URL de Producción: `https://git-spy-tau.vercel.app`
+  - URL del Proyecto (dashboard): `https://vercel.com/medalcode-projects/git-spy`
+
+### Notas
+
+- Se recomienda revisar las configuraciones de entorno en el dashboard de Vercel (especialmente `GITHUB_TOKEN`).
+- El despliegue actual sobrescribe configuraciones de construcción debido a `vercel.json` (comportamiento esperado para API-only).
+
+---
+
+## Sesión de Debugging y Hardening (29 de enero de 2026)
+
+### Diagnóstico de Error 500 en Kanban
+
+Se investigó y reprodujo un error 500 reportado en la integración `Autokanban` -> `GitSpy`.
+
+- **Causa Raíz**: Fallo en la importación dinámica (`await import(...)`) del módulo `_lib/bitacoraParser.js` dentro del entorno Serverless de Vercel.
+- **Reproducción Local**: Exitosa.
+- **Reproducción en Vercel**: Exitosa (mediante inyección de fallo controlado).
+
+### Acciones Realizadas
+
+1. **Parche de Robustez (`kanban.js`)**:
+   - Implementado un `try/catch` global que captura **cualquier** excepción no manejada.
+   - Normalización de respuestas de error: Siempre devuelve JSON `{ error: { code, message, stage } }` en lugar de respuestas vacías o 500 genéricos del proveedor.
+   - Logging mejorado: Se asegura que `console.error` reciba el stack trace completo para depuración en los logs de Vercel.
+
+2. **Corrección de Routing (`vercel.json`)**:
+   - Se corrigieron las reglas de reescritura para mapear correctamente las URLs dinámicas `/api/repos/:owner/:repo/kanban` a la función serveless correspondiente.
+
+### Estado Actual
+
+- El endpoint `/api/repos/:owner/:repo/kanban` es estable y maneja errores de forma elegante.
+- Despliegue verificado y funcional en `https://git-spy-tau.vercel.app`.
+
+### Pendientes
+
+- [ ] Implementar tests de integración específicos para el endpoint Kanban.
+- [ ] Verificar logs de producción tras tráfico real.

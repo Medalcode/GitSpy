@@ -12,7 +12,7 @@ function sendError(res, status, code, message, stage, err) {
     // ensure logging never throws
     console.error('failed to log error', logErr);
   }
-  const body = { error: { code: code || 'internal_error', message: String(message || ''), stage: stage || 'internal' } };
+  const body = { error: { code: code || 'internal_error', message: String(message || 'Unknown error'), stage: stage || 'internal' } };
   // Always include a body for 500-level responses
   try {
     return res.status(status || 500).json(body);
@@ -71,10 +71,12 @@ async function fetchBitacoraFromGitHub(owner, repo) {
 export default async function handler(req, res) {
   try {
     if (!process.env.GITHUB_TOKEN) console.warn('GITHUB_TOKEN not set in environment — requests will be unauthenticated and may be rate-limited');
+    
+    // Validate inputs
     const owner = req.query.owner || (req.query[0] || "").split("/")[0];
     const repo = req.query.repo || (req.query[0] || "").split("/")[1];
     if (!owner || !repo)
-      return sendError(res, 400, 'bad_request', 'owner and repo required in path', 'internal');
+      return sendError(res, 400, 'bad_request', 'owner and repo required in path', 'request_validation');
 
     // Dynamically import parser from api/_lib (included with function bundle)
     let parseBitacora = null;
@@ -113,6 +115,7 @@ export default async function handler(req, res) {
     };
     return res.status(200).json(response);
   } catch (err) {
+    // Catch-all for any other unexpected errors in the handler top-level
     return sendError(res, 500, 'internal_error', String((err && err.message) || err), 'internal', err);
   }
 }
