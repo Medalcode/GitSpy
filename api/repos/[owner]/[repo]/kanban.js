@@ -3,8 +3,16 @@
 // ESM-friendly Vercel Serverless Function
 // Uses static import for correct bundling.
 
+// Helper to set CORS headers
+function setCorsHeaders(res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
+
 // Helper to send normalized error responses and log full stacks
 function sendError(res, status, code, message, stage, err) {
+  setCorsHeaders(res); // Ensure CORS headers are on errors too
   try {
     if (err) console.error(err && (err.stack || err));
     else console.error('error:', message);
@@ -70,6 +78,11 @@ async function fetchBitacoraFromGitHub(owner, repo) {
 
 export default async function handler(req, res) {
   try {
+    setCorsHeaders(res);
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+
     if (!process.env.GITHUB_TOKEN) console.warn('GITHUB_TOKEN not set in environment — requests will be unauthenticated and may be rate-limited');
     
     // Validate inputs
