@@ -3,6 +3,43 @@
 // ESM-friendly Vercel Serverless Function
 // Uses static import for correct bundling.
 
+// Helper to send normalized error responses and log full stacks
+function sendError(res, status, code, message, stage, err) {
+  try {
+    if (err) console.error(err && (err.stack || err));
+    else console.error('error:', message);
+  } catch (logErr) {
+    // ensure logging never throws
+    console.error('failed to log error', logErr);
+  }
+  const body = { error: { code: code || 'internal_error', message: String(message || ''), stage: stage || 'internal' } };
+  // Always include a body for 500-level responses
+  try {
+    return res.status(status || 500).json(body);
+  } catch (sendErr) {
+    // If JSON serialization fails, log and try to send a minimal JSON string
+    console.error('failed to send error response', sendErr, 'original error:', err && (err.stack || err));
+    try {
+      res.status(status || 500).setHeader('content-type', 'application/json').end(JSON.stringify(body));
+    } catch (finalErr) {
+      console.error('final send failed', finalErr);
+      // nothing else we can do
+    }
+    return undefined;
+  }
+}
+
+// Global safety hooks to avoid uncaught exceptions bringing down the runtime
+if (typeof process !== 'undefined' && process && !process.__gitspy_handlers_installed) {
+  process.__gitspy_handlers_installed = true;
+  process.on('uncaughtException', (err) => {
+    try { console.error('uncaughtException:', err && (err.stack || err)); } catch (e) { /* swallow */ }
+  });
+  process.on('unhandledRejection', (reason) => {
+    try { console.error('unhandledRejection:', reason && (reason.stack || reason)); } catch (e) { /* swallow */ }
+  });
+}
+
 async function fetchBitacoraFromGitHub(owner, repo) {
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/Bitacora.md`;
   const headers = { "User-Agent": "gitspy-vercel-function" };
@@ -37,7 +74,7 @@ export default async function handler(req, res) {
     const owner = req.query.owner || (req.query[0] || "").split("/")[0];
     const repo = req.query.repo || (req.query[0] || "").split("/")[1];
     if (!owner || !repo)
-      return res.status(400).json({ error: { code: 'bad_request', status: 400, message: 'owner and repo required in path', stage: 'internal' } });
+      return sendError(res, 400, 'bad_request', 'owner and repo required in path', 'internal');
 
     // Dynamically import parser from api/_lib (included with function bundle)
     let parseBitacora = null;
@@ -46,8 +83,7 @@ export default async function handler(req, res) {
       parseBitacora = parserMod.parseBitacora || (parserMod.default && parserMod.default.parseBitacora) || parserMod.default;
       if (!parseBitacora) throw new Error('parseBitacora export not found');
     } catch (e) {
-      console.error('parser import failed', e && (e.stack || e));
-      return res.status(500).json({ error: { code: 'parser_import_failed', status: 500, message: String((e && e.message) || e), stage: 'internal' } });
+      return sendError(res, 500, 'parser_import_failed', String((e && e.message) || e), 'internal', e);
     }
 
     // Fetch GitHub content (guarded)
@@ -55,21 +91,19 @@ export default async function handler(req, res) {
     try {
       result = await fetchBitacoraFromGitHub(owner, repo);
     } catch (e) {
-      console.error('fetchBitacoraFromGitHub failed', e && (e.stack || e));
-      return res.status(502).json({ error: { code: 'fetch_failed', status: 502, message: String((e && e.message) || e), stage: 'fetch_github' } });
+      return sendError(res, 502, 'fetch_failed', String((e && e.message) || e), 'fetch_github', e);
     }
 
-    if (result.notFound) return res.status(404).json({ error: { code: 'not_found', status: 404, message: 'repo_or_file_not_found', stage: 'fetch_github' } });
-    if (result.rateLimited) return res.status(429).json({ error: { code: 'rate_limited', status: 429, message: result.text || 'rate limited', stage: 'fetch_github', contentType: result.contentType } });
-    if (result.error) return res.status(result.status || 500).json({ error: { code: 'github_error', status: result.status || 500, message: result.error || 'github error', stage: 'fetch_github', contentType: result.contentType } });
+    if (result.notFound) return sendError(res, 404, 'not_found', 'repo_or_file_not_found', 'fetch_github');
+    if (result.rateLimited) return sendError(res, 429, 'rate_limited', result.text || 'rate limited', 'fetch_github');
+    if (result.error) return sendError(res, result.status || 500, 'github_error', result.error || 'github error', 'fetch_github');
 
     const md = result.md || '';
     let kanban;
     try {
       kanban = parseBitacora(md);
     } catch (e) {
-      console.error('parseBitacora failed', e && (e.stack || e));
-      return res.status(500).json({ error: { code: 'parse_failed', status: 500, message: String((e && e.message) || e), stage: 'parse_bitacora' } });
+      return sendError(res, 500, 'parse_failed', String((e && e.message) || e), 'parse_bitacora', e);
     }
 
     const response = {
@@ -79,7 +113,6 @@ export default async function handler(req, res) {
     };
     return res.status(200).json(response);
   } catch (err) {
-    console.error('serverless kanban unexpected error', err && (err.stack || err));
-    return res.status(500).json({ error: { code: 'internal_error', status: 500, message: String((err && err.message) || err), stage: 'internal' } });
+    return sendError(res, 500, 'internal_error', String((err && err.message) || err), 'internal', err);
   }
 }
