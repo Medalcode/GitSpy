@@ -1,4 +1,5 @@
 # GitSpy
+
 GitSpy es una API-first, serverless project enfocado en exponer datos y operaciones mediante funciones en `/api/**`.
 
 - Producción: solo `api/**` (serverless). El código legacy de Express se mantiene para desarrollo local pero está excluido del bundle de producción; la raíz (`/`) devuelve 404 intencionalmente en producción.
@@ -450,20 +451,20 @@ curl http://localhost:3000/metrics/prom
 - [x] **Suite completa de tests (70+ tests)**
 - [x] **Infraestructura de CI/CD**
 - [x] **Documentación completa**
+- [x] **Parser y API de Kanban** (`/api/repos/:owner/:repo/kanban`)
+- [x] **Despliegue Serverless en Vercel** (API-first)
 
 ### En Progreso 🚧
 
 - [ ] Tests de integración con Redis real
 - [ ] Tests E2E completos
-- [ ] GitHub Actions workflow
+- [ ] Refactorización de persistencia para entorno Serverless
 
 ### Próximos Pasos 📋
 
-- [ ] Migración a PostgreSQL (producción)
-- [ ] Autenticación de usuarios
-- [ ] API de consulta avanzada
-- [ ] Dashboard web
-- [ ] Webhooks salientes (notificaciones)
+- [ ] Migración completa a PostgreSQL (soportado por Vercel/Neon)
+- [ ] Autenticación básica para endpoints públicos
+- [ ] Integración CI/CD para validar formato de Bitacora.md
 
 ## 🤝 Contribuir
 
@@ -484,6 +485,7 @@ Este proyecto es privado y de uso interno.
 
 - Desarrollo inicial y arquitectura
 - Implementación de testing strategy (27/01/2026)
+- Despliegue Vercel y Kanban System (29/01/2026)
 
 ## 🙏 Agradecimientos
 
@@ -494,6 +496,6 @@ Este proyecto es privado y de uso interno.
 
 ---
 
-**Última actualización**: 27 de enero de 2026  
-**Versión**: 0.1.0  
-**Estado**: ✅ Testing Infrastructure Complete - 70/70 tests passing
+**Última actualización**: 30 de enero de 2026  
+**Versión**: 0.2.0 (Serverless Ready)  
+**Estado**: ✅ Producción en Vercel - API Kanban Operativa
