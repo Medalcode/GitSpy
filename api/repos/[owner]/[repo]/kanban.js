@@ -49,14 +49,32 @@ async function fetchBitacoraFromGitHub(owner, repo) {
 
   const res = await fetch(url, { headers });
   const status = res.status;
-  if (status === 404) return { notFound: true };
+
+  // Granular GitHub Error Mapping
+  if (status === 404) {
+    // 404 from GitHub means either file missing OR repo private/inaccessible
+    return { error: 'Bitacora.md or Repo not found/inaccessible', code: 'not_found', status: 404 };
+  }
+  
   if (status === 403) {
     const text = await res.text();
-    return { rateLimited: true, text, status, contentType: res.headers.get('content-type') };
+    const isRateLimit = res.headers.get('x-ratelimit-remaining') === '0';
+    if (isRateLimit) {
+         return { error: 'GitHub Rate Limit Exceeded', code: 'rate_limited', status: 429 };
+    }
+    // Generic forbidden (e.g. SSO enforcement, repo rules)
+    return { error: 'Forbidden access to Repository', code: 'forbidden', status: 403, details: text };
   }
+
+  if (status === 401) {
+    // 401 from GitHub = Bad Server Token. Do NOT return 401 to user (implies user auth issue).
+    // Return 500 because it's a server configuration error.
+    return { error: 'Internal Upstream Auth Configuration Error', code: 'upstream_auth_error', status: 500 }; 
+  }
+
   if (!res.ok) {
     const text = await res.text();
-    return { error: text, status, contentType: res.headers.get('content-type') };
+    return { error: `Unexpected GitHub Error: ${text}`, code: 'upstream_error', status: 502 };
   }
   const json = await res.json();
   const encoding = json.encoding || "utf-8";
@@ -100,9 +118,10 @@ export default async function handler(req, res) {
       return sendError(res, 502, 'fetch_failed', String((e && e.message) || e), 'fetch_github', e);
     }
 
-    if (result.notFound) return sendError(res, 404, 'not_found', 'repo_or_file_not_found', 'fetch_github');
-    if (result.rateLimited) return sendError(res, 429, 'rate_limited', result.text || 'rate limited', 'fetch_github');
-    if (result.error) return sendError(res, result.status || 500, 'github_error', result.error || 'github error', 'fetch_github');
+    // Unified error handling from fetch step
+    if (result.error) {
+      return sendError(res, result.status, result.code, result.error, 'fetch_github', result.details);
+    }
 
     const md = result.md || '';
     let kanban;
