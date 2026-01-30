@@ -6,13 +6,23 @@ export async function fetchKanban(owner, repo) {
   if (!res.ok) {
     let msg = 'Error desconocido al cargar el Kanban';
     
-    if (res.status === 401) msg = 'Repositorio privado o requiere autenticación';
-    else if (res.status === 403) msg = 'Este repositorio no expone Kanban (Acceso denegado)';
-    else if (res.status === 404) msg = 'No se encontró Bitacora.md o el repositorio no existe';
-    else if (res.status === 429) msg = 'Excedido el límite de velocidad (Rate Limit)';
-    else if (res.status >= 500) msg = 'Error interno del servidor GitSpy';
+    // Intentar leer el mensaje de error del backend
+    let errorDetail = 'Error desconocido';
+    try {
+      const errJson = await res.json();
+      errorDetail = (errJson.error && errJson.error.message) || errJson.error || JSON.stringify(errJson);
+    } catch {
+       // fallback si no es JSON
+      errorDetail = res.statusText;
+    }
 
-    throw new Error(`${msg} (${res.status})`);
+    if (res.status === 401) msg = `Acceso denegado (401): ${errorDetail}`;
+    else if (res.status === 403) msg = `Prohibido (403): ${errorDetail}`;
+    else if (res.status === 404) msg = 'No encontrado (404): Bitacora.md o repositorio inexistente';
+    else if (res.status === 429) msg = 'Límite de peticiones excedido (Intenta más tarde)';
+    else if (res.status >= 500) msg = `Error del servidor (${res.status}): ${errorDetail}`;
+
+    throw new Error(msg);
   }
   const json = await res.json()
   // The backend is authoritative; frontend does not interpret rules

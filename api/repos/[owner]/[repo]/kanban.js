@@ -44,16 +44,18 @@ function sendError(res, status, code, message, stage, err) {
 async function fetchBitacoraFromGitHub(owner, repo) {
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/Bitacora.md`;
   const headers = { "User-Agent": "gitspy-vercel-function" };
-  if (process.env.GITHUB_TOKEN)
-    headers["Authorization"] = `token ${process.env.GITHUB_TOKEN}`;
+  // PERMITIR ACCESO PÚBLICO: No enviamos token para evitar 401 si el token del servidor es inválido.
+  // Esto garantiza que el kanban sea visible en repos públicos.
+  // if (process.env.GITHUB_TOKEN) headers["Authorization"] = ...
 
   const res = await fetch(url, { headers });
   const status = res.status;
 
   // Granular GitHub Error Mapping
   if (status === 404) {
-    // 404 from GitHub means either file missing OR repo private/inaccessible
-    return { error: 'Bitacora.md or Repo not found/inaccessible', code: 'not_found', status: 404 };
+    // 404 implies file missing OR repo is private (hidden by GitHub to anonymous users)
+    // We return 404 to the user. We do NOT return 401 because we cannot distinguish.
+    return { error: 'Bitacora.md not found or Repo accessible', code: 'not_found', status: 404 };
   }
   
   if (status === 403) {
@@ -62,13 +64,13 @@ async function fetchBitacoraFromGitHub(owner, repo) {
     if (isRateLimit) {
          return { error: 'GitHub Rate Limit Exceeded', code: 'rate_limited', status: 429 };
     }
-    // Generic forbidden (e.g. SSO enforcement, repo rules)
+    // Generic forbidden
     return { error: 'Forbidden access to Repository', code: 'forbidden', status: 403, details: text };
   }
 
   if (status === 401) {
-    // 401 from GitHub = Bad Server Token. Do NOT return 401 to user (implies user auth issue).
-    // Return 500 because it's a server configuration error.
+    // 401 from GitHub means our SERVER token is bad. This is a Server Config Error (500).
+    // NEVER return 401 to the user for a server config issue.
     return { error: 'Internal Upstream Auth Configuration Error', code: 'upstream_auth_error', status: 500 }; 
   }
 
