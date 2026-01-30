@@ -1,3 +1,6 @@
+// ARCHITECTURE NOTE: Static import is REQUIRED for Vercel to correctly bundle the parser from _lib.
+// Dynamic imports or runtime fs reads often fail in Serverless environments due to tracing limitations.
+// DO NOT refactor to dynamic import without verifying the production bundle (vercel build).
 import { parseBitacora } from '../../../_lib/bitacoraParser.js';
 
 
@@ -69,6 +72,12 @@ async function fetchBitacoraFromGitHub(owner, repo) {
 export default async function handler(req, res) {
   try {
     setCorsHeaders(res);
+    
+    // Guardrail: Ensure parser is loaded in production
+    if (process.env.VERCEL === '1' && typeof parseBitacora !== 'function') {
+      return sendError(res, 500, 'parser_not_loaded', 'Bitacora parser not correctly loaded in bundle', 'init_check');
+    }
+
     if (req.method === 'OPTIONS') {
       return res.status(200).end();
     }

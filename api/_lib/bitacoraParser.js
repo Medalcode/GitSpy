@@ -1,3 +1,7 @@
+// DEPRECATED: This file is slated for removal.
+// The source of truth regarding the parser logic usage now lives in api/repos/[owner]/[repo]/kanban.js.
+// Do not modify this file without checking the handler first.
+
 // Pure, deterministic parser for Bitacora.md -> KanbanBoard JSON
 // Exposes: parseBitacora(mdContent: string) -> KanbanBoard object
 
