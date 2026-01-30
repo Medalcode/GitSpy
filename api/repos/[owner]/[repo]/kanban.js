@@ -120,6 +120,8 @@ export default async function handler(req, res) {
     return res.status(200).json(response);
   } catch (err) {
     // Catch-all for any other unexpected errors in the handler top-level
-    return sendError(res, 500, 'internal_error', String((err && err.message) || err), 'internal', err);
+    const stack = (err && err.stack) || String(err);
+    console.error('HANDLER_CRASH:', stack);
+    return sendError(res, 500, 'internal_error', 'Internal Server Error detected inside handler', 'internal', err);
   }
 }
