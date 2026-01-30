@@ -70,11 +70,13 @@ async function fetchBitacoraFromGitHub(owner, repo) {
 }
 
 export default async function handler(req, res) {
+  console.log('HANDLER_START', req.url);
   try {
     setCorsHeaders(res);
     
     // Guardrail: Ensure parser is loaded in production
     if (process.env.VERCEL === '1' && typeof parseBitacora !== 'function') {
+      console.error('PARSER_CHECK_FAILED: parseBitacora is', typeof parseBitacora);
       return sendError(res, 500, 'parser_not_loaded', 'Bitacora parser not correctly loaded in bundle', 'init_check');
     }
 
