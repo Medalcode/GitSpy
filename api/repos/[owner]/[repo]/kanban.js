@@ -1,7 +1,5 @@
-// Dynamically import parser from local api/_lib to ensure availability in Vercel runtime
+import { parseBitacora } from '../../../_lib/bitacoraParser.js';
 
-// ESM-friendly Vercel Serverless Function
-// Uses static import for correct bundling.
 
 // Helper to set CORS headers
 function setCorsHeaders(res) {
@@ -38,16 +36,7 @@ function sendError(res, status, code, message, stage, err) {
   }
 }
 
-// Global safety hooks to avoid uncaught exceptions bringing down the runtime
-if (typeof process !== 'undefined' && process && !process.__gitspy_handlers_installed) {
-  process.__gitspy_handlers_installed = true;
-  process.on('uncaughtException', (err) => {
-    try { console.error('uncaughtException:', err && (err.stack || err)); } catch (e) { /* swallow */ }
-  });
-  process.on('unhandledRejection', (reason) => {
-    try { console.error('unhandledRejection:', reason && (reason.stack || reason)); } catch (e) { /* swallow */ }
-  });
-}
+
 
 async function fetchBitacoraFromGitHub(owner, repo) {
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/Bitacora.md`;
@@ -91,16 +80,6 @@ export default async function handler(req, res) {
     const repo = req.query.repo || (req.query[0] || "").split("/")[1];
     if (!owner || !repo)
       return sendError(res, 400, 'bad_request', 'owner and repo required in path', 'request_validation');
-
-    // Dynamically import parser from api/_lib (included with function bundle)
-    let parseBitacora = null;
-    try {
-      const parserMod = await import(new URL('../../../_lib/bitacoraParser.js', import.meta.url).href);
-      parseBitacora = parserMod.parseBitacora || (parserMod.default && parserMod.default.parseBitacora) || parserMod.default;
-      if (!parseBitacora) throw new Error('parseBitacora export not found');
-    } catch (e) {
-      return sendError(res, 500, 'parser_import_failed', String((e && e.message) || e), 'internal', e);
-    }
 
     // Fetch GitHub content (guarded)
     let result;
