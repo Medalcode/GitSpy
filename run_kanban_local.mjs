@@ -10,6 +10,7 @@ function makeRes() {
   return {
     status(code) { statusCode = code; return this; },
     json(obj) { body = obj; console.log('RESPONSE_STATUS:', statusCode); console.log('RESPONSE_BODY:', JSON.stringify(obj, null, 2)); },
+    setHeader(key, val) { console.log(`HEADER: ${key}=${val}`); },
     _get() { return { statusCode, body }; }
   };
 }

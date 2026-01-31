@@ -46,7 +46,9 @@ async function fetchBitacoraFromGitHub(owner, repo) {
   const headers = { "User-Agent": "gitspy-vercel-function" };
   // PERMITIR ACCESO PÚBLICO: No enviamos token para evitar 401 si el token del servidor es inválido.
   // Esto garantiza que el kanban sea visible en repos públicos.
-  // if (process.env.GITHUB_TOKEN) headers["Authorization"] = ...
+  if (process.env.GITHUB_TOKEN) {
+    headers["Authorization"] = `Bearer ${process.env.GITHUB_TOKEN}`;
+  }
 
   const res = await fetch(url, { headers });
   const status = res.status;

@@ -69,3 +69,54 @@ export async function fetchFile(owner: string, repo: string, path: string, ref?:
   )
 }
 
+// Fetch all issues (open and closed) for a repo and map to simplified objects
+export async function fetchIssues(owner: string, repo: string) {
+  const perPage = 100
+  let page = 1
+  const results: Array<any> = []
+
+  while (true) {
+    const data = await requestWithRateLimit((client) =>
+      client.rest.issues.listForRepo({ owner, repo, state: 'all', per_page: perPage, page })
+    )
+
+    if (!data) break
+
+    // data is an array of issues for this page
+    if (!Array.isArray(data)) break
+
+    for (const issue of data) {
+      const labels = Array.isArray(issue.labels)
+        ? issue.labels.map((l: any) => (typeof l === 'string' ? l : l.name)).filter(Boolean)
+        : []
+
+      // determine column based on labels or state
+      const statusLabel = labels.find((n: string) => typeof n === 'string' && n.toLowerCase().startsWith('status:'))
+      let column = 'Todo'
+      if (issue.state === 'closed' || (statusLabel && statusLabel.toLowerCase() === 'status:done')) {
+        column = 'Done'
+      } else if (statusLabel && statusLabel.toLowerCase() === 'status:in-progress') {
+        column = 'In Progress'
+      } else if (statusLabel && statusLabel.toLowerCase() === 'status:todo') {
+        column = 'Todo'
+      }
+
+      results.push({
+        id: issue.id ?? issue.number,
+        title: issue.title,
+        description: issue.body ?? '',
+        tags: labels,
+        updatedAt: issue.updated_at ?? issue.updatedAt,
+        html_url: issue.html_url,
+        assignee: issue.assignee ? { login: issue.assignee.login, avatar_url: issue.assignee.avatar_url } : null,
+        column,
+      })
+    }
+
+    if (data.length < perPage) break
+    page++
+  }
+
+  return results
+}
+
