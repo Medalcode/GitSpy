@@ -70,10 +70,17 @@ Description: Migrar de SQLite a PostgreSQL para soportar estado persistente en e
 Tags: master project, database
 Priority: medium
 
-[TODO] F-011 — Autenticación Básica
-Description: Proteger el endpoint de Kanban con autenticación simple si se hace público.
-Tags: security
-Priority: low
+[DONE] F-011 — Autenticación Básica
+Description: Se decidió NO implementar auth para lectura pública. (Ver README.md)
+Tags: security, decision
+Started: 2026-02-01
+Completed: 2026-02-01
+
+[DONE] F-014 — Consolidación Arquitectónica
+Description: Unificación de AutoKanban como UI interna en app e integración del parser en core.
+Tags: architecture, refactor
+Started: 2026-02-01
+Completed: 2026-02-01
 
 [TODO] F-012 — CI Linter para Bitacora
 Description: GitHub Action que valide el formato de Bitacora.md en Pull Requests.

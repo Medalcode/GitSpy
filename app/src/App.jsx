@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { fetchKanban } from './services/gitspy'
+import { fetchKanban } from './services/api'
 import KanbanBoard from './components/KanbanBoard'
 
 export default function App() {
@@ -31,7 +31,7 @@ export default function App() {
   return (
     <div className="app">
       <header>
-        <h1>AutoKanban — GITSPY Client</h1>
+        <h1>GitSpy Kanban</h1>
       </header>
       <section className="controls">
         <input value={repoInput} onChange={e => setRepoInput(e.target.value)} placeholder="owner/repo" />

@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_GITSPY_BASE || 'http://localhost:3000'
+// Relative path for same-origin requests
+const API_BASE = '/api';
 
 export async function fetchKanban(owner, repo) {
   const url = `${API_BASE}/repos/${owner}/${repo}/kanban`

@@ -1,10 +1,55 @@
 # GitSpy
 
-GitSpy es una API-first, serverless project enfocado en exponer datos y operaciones mediante funciones en `/api/**`.
+**El sistema operativo para tus proyectos open source.**
 
-- Producción: solo `api/**` (serverless). El código legacy de Express se mantiene para desarrollo local pero está excluido del bundle de producción; la raíz (`/`) devuelve 404 intencionalmente en producción.
+GitSpy es una plataforma unificada que transforma repositorios estáticos en espacios de trabajo dinámicos. Combina un potente motor de análisis, una API serverless robusta y una interfaz visual oficial para gestionar tu flujo de trabajo sin salir de tus herramientas favoritas.
 
-API intermedia que centraliza y optimiza llamadas a GitHub con sistema de caché, cola de eventos y rate limiting inteligente.
+GitSpy opera bajo un principio simple: **Tu repositorio es la base de datos.**
+
+---
+
+## Architecture at a Glance
+
+GitSpy no es una colección de microservicios desconectados. Es un monolito modular diseñado para despliegue atómico en entornos serverless (Vercel).
+
+### 1. The Core Engine (`src/core`)
+
+El cerebro de GitSpy.
+
+- **Parser Canónico:** Transforma `Bitacora.md` en estructuras de datos estrictas.
+- **Single Source of Truth:** Centraliza toda la lógica de validación y reglas de negocio.
+- **Agnóstico:** Funciona igual en CLI, API o tests.
+
+### 2. The API (`api/`)
+
+La capa de conectividad.
+
+- **Serverless First:** Endpoints optimizados para ejecución efímera.
+- **Public Read / Authenticated Write:** Lectura de tableros abierta al mundo; acciones de escritura protegidas.
+- **Smart Caching:** Middleware inteligente que minimiza el consumo de cuota de GitHub.
+
+### 3. The UI (`app/`)
+
+La cara visible.
+
+- **Integrated Frontend:** Una aplicación React moderna servida desde el mismo origen.
+- **Zero Config:** No requiere configuración de CORS ni autenticación compleja. Consume la API localmente (`/api/...`).
+- **Visualización Pura:** Renderiza el estado del proyecto tal como lo dicta el Core, sin lógica oculta.
+
+---
+
+## Why this is a Single App
+
+Hemos consolidado deliberadamente la arquitectura para maximizar la estabilidad y la experiencia de desarrollo (DX).
+
+**🏠 Single Origin Policy**
+Frontend y Backend viven juntos. Eliminamos para siempre los problemas de CORS, la gestión de tokens entre dominios y las condiciones de carrera en despliegues desincronizados.
+
+**⚡ Atomic Deploys**
+Cuando despliegas GitSpy, despliegas todo. La versión de la UI siempre es compatible con la versión de la API y el Core. No hay versiones "que no coinciden".
+
+**🛡️ Shared Domain Logic**
+El Frontend nunca "adivina" el estado de una tarea. El Backend (Core) dicta la verdad, y el Frontend simplemente la refleja. Si cambia una regla de negocio, cambia en un solo lugar.
 
 ## 🚀 Quick Start
 
