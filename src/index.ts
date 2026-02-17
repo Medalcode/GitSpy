@@ -7,6 +7,8 @@ import metricsRouter from './routes/metrics'
 import { initQueue, closeQueue } from './infra/queue'
 import { closeDb } from './infra/db'
 import { closeRedis } from './infra/cache'
+import { getRedis } from './infra/cache'
+import { getQueueCounts } from './infra/queue'
 
 dotenv.config()
 
@@ -14,6 +16,18 @@ const app = express()
 app.use(bodyParser.json())
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }))
+
+app.get('/readyz', async (_req, res) => {
+  try {
+    const r = getRedis()
+    // ping may throw if redis not ready
+    if (r && typeof r.ping === 'function') await r.ping()
+    const counts = await getQueueCounts()
+    res.json({ redis: 'ok', queue: counts })
+  } catch (e) {
+    res.status(503).json({ error: 'not ready', details: String(e) })
+  }
+})
 
 app.use('/repositories', repositoriesRouter)
 app.use('/webhooks', webhooksRouter)

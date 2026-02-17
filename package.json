@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev:worker": "ts-node-dev --respawn --transpile-only src/worker-runner.ts",
     "start": "node dist/index.js",
+    "start:worker": "node dist/worker-runner.js",
     "build": "tsc",
     "test": "jest",
     "test:unit": "jest --testPathPattern=tests/unit",

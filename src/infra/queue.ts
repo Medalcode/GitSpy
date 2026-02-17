@@ -5,13 +5,23 @@ import IORedis from 'ioredis'
 
 let queue: Queue | null = null
 let worker: Worker | null = null
+let connection: any = null
+
+export function getConnection() {
+  if (connection) return connection
+  connection = new IORedis(config.redisUrl)
+  connection.on('error', (e: any) => console.error('Redis connection error', e))
+  return connection
+}
 
 export async function initQueue() {
-  const connection = new IORedis(config.redisUrl)
-  queue = new Queue(config.queueName, { connection })
+  const conn = getConnection()
+  queue = new Queue(config.queueName, { connection: conn })
+}
 
-  // Inicializar worker local (en producción cada worker sería un proceso separado)
-  worker = new Worker(config.queueName, EventWorker, { connection })
+export async function initWorker(concurrency = 1) {
+  const conn = getConnection()
+  worker = new Worker(config.queueName, EventWorker, { connection: conn, concurrency })
   worker.on('error', (err) => console.error('Worker error', err))
 }
 
@@ -41,4 +51,10 @@ export async function closeQueue() {
   } catch (e) {
     console.warn('Error closing queue', e)
   }
+  try {
+    if (connection) {
+      try { await connection.quit() } catch (e) { try { connection.disconnect() } catch (e) { /* ignore */ } }
+      connection = null
+    }
+  } catch (e) { /* ignore */ }
 }
