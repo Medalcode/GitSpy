@@ -1,8 +1,7 @@
 import express from 'express'
-import bodyParser from 'body-parser'
-import dotenv from 'dotenv'
-import repositoriesRouter from './routes/repositories'
+import { config } from './config'
 import webhooksRouter from './routes/webhooks'
+<<<<<<< HEAD
 import metricsRouter from './routes/metrics'
 import { initQueue, closeQueue } from './infra/queue'
 import { closeDb } from './infra/db'
@@ -11,12 +10,16 @@ import { getRedis } from './infra/cache'
 import { getQueueCounts } from './infra/queue'
 
 dotenv.config()
+=======
+import repositoriesRouter from './routes/repositories'
+import kanbanRouter from './routes/kanban'
+>>>>>>> eea7ac3132d8ca1130dbe2cafca1f55a760b9be5
 
 const app = express()
-app.use(bodyParser.json())
 
-app.get('/health', (_req, res) => res.json({ status: 'ok' }))
+app.use(express.json()) // Global JSON parsing
 
+<<<<<<< HEAD
 app.get('/readyz', async (_req, res) => {
   try {
     const r = getRedis()
@@ -30,36 +33,22 @@ app.get('/readyz', async (_req, res) => {
 })
 
 app.use('/repositories', repositoriesRouter)
+=======
+// Mount routes
+>>>>>>> eea7ac3132d8ca1130dbe2cafca1f55a760b9be5
 app.use('/webhooks', webhooksRouter)
-app.use('/metrics', metricsRouter)
+app.use('/repositories', repositoriesRouter)
+app.use('/api', kanbanRouter)
 
-const port = process.env.PORT || 3000
-
-// Inicializar recursos asíncronos (colas, redis, etc.)
-let server: any = null
-initQueue().then(() => {
-  server = app.listen(port, () => {
-    console.log(`GitSpy API listening on port ${port}`)
-  })
-}).catch(err => {
-  console.error('Failed to initialize queue:', err)
-  process.exit(1)
+app.get('/', (req, res) => {
+  res.send({ status: 'ok', version: process.env.npm_package_version })
 })
 
-async function shutdown(signal?: string) {
-  console.log('Shutting down', signal || '')
-  try {
-    if (server) {
-      server.close(() => console.log('HTTP server closed'))
-    }
-    await closeQueue()
-  } catch (e) {
-    console.warn('Error during shutdown', e)
-  }
-  try { closeDb() } catch (e) { /* ignore */ }
-  try { await closeRedis() } catch (e) { /* ignore */ }
-  process.exit(0)
+// Start server if main module
+if (require.main === module) {
+  app.listen(config.port, () => {
+    console.log(`Server listening on port ${config.port}`)
+  })
 }
 
-process.on('SIGINT', () => shutdown('SIGINT'))
-process.on('SIGTERM', () => shutdown('SIGTERM'))
+export default app

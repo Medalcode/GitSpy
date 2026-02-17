@@ -1,6 +1,55 @@
 # GitSpy
 
-API intermedia que centraliza y optimiza llamadas a GitHub con sistema de caché, cola de eventos y rate limiting inteligente.
+**El sistema operativo para tus proyectos open source.**
+
+GitSpy es una plataforma unificada que transforma repositorios estáticos en espacios de trabajo dinámicos. Combina un potente motor de análisis, una API serverless robusta y una interfaz visual oficial para gestionar tu flujo de trabajo sin salir de tus herramientas favoritas.
+
+GitSpy opera bajo un principio simple: **Tu repositorio es la base de datos.**
+
+---
+
+## Architecture at a Glance
+
+GitSpy no es una colección de microservicios desconectados. Es un monolito modular diseñado para despliegue atómico en entornos serverless (Vercel).
+
+### 1. The Core Engine (`src/core`)
+
+El cerebro de GitSpy.
+
+- **Parser Canónico:** Transforma `Bitacora.md` en estructuras de datos estrictas.
+- **Single Source of Truth:** Centraliza toda la lógica de validación y reglas de negocio.
+- **Agnóstico:** Funciona igual en CLI, API o tests.
+
+### 2. The API (`api/`)
+
+La capa de conectividad.
+
+- **Serverless First:** Endpoints optimizados para ejecución efímera.
+- **Public Read / Authenticated Write:** Lectura de tableros abierta al mundo; acciones de escritura protegidas.
+- **Smart Caching:** Middleware inteligente que minimiza el consumo de cuota de GitHub.
+
+### 3. The UI (`app/`)
+
+La cara visible.
+
+- **Integrated Frontend:** Una aplicación React moderna servida desde el mismo origen.
+- **Zero Config:** No requiere configuración de CORS ni autenticación compleja. Consume la API localmente (`/api/...`).
+- **Visualización Pura:** Renderiza el estado del proyecto tal como lo dicta el Core, sin lógica oculta.
+
+---
+
+## Why this is a Single App
+
+Hemos consolidado deliberadamente la arquitectura para maximizar la estabilidad y la experiencia de desarrollo (DX).
+
+**🏠 Single Origin Policy**
+Frontend y Backend viven juntos. Eliminamos para siempre los problemas de CORS, la gestión de tokens entre dominios y las condiciones de carrera en despliegues desincronizados.
+
+**⚡ Atomic Deploys**
+Cuando despliegas GitSpy, despliegas todo. La versión de la UI siempre es compatible con la versión de la API y el Core. No hay versiones "que no coinciden".
+
+**🛡️ Shared Domain Logic**
+El Frontend nunca "adivina" el estado de una tarea. El Backend (Core) dicta la verdad, y el Frontend simplemente la refleja. Si cambia una regla de negocio, cambia en un solo lugar.
 
 ## 🚀 Quick Start
 
@@ -23,7 +72,7 @@ Edita `.env` con tus credenciales:
 
 ```env
 PORT=3000
-GITHUB_TOKEN=your_github_token_here
+GITHUB_TOKEN=your_github_token_here  # REQUIRED for production on Vercel: set in Project Settings
 GITHUB_WEBHOOK_SECRET=your_webhook_secret
 REDIS_URL=redis://localhost:6379
 QUEUE_NAME=events
@@ -108,13 +157,13 @@ npm run test:ci
 
 **Estado actual: 70/70 tests unitarios pasando ✅**
 
-| Componente | Cobertura | Tests | Estado |
-|------------|-----------|-------|--------|
-| Rate Limiter | 100% | 15 | ✅ Crítico |
-| Database | 95% | 18 | ✅ |
-| Webhooks | 100% | 12 | ✅ Seguridad |
-| GitHub Adapter | 90% | 14 | ✅ |
-| Integration Flow | 85% | 11 | ✅ |
+| Componente       | Cobertura | Tests | Estado       |
+| ---------------- | --------- | ----- | ------------ |
+| Rate Limiter     | 100%      | 15    | ✅ Crítico   |
+| Database         | 95%       | 18    | ✅           |
+| Webhooks         | 100%      | 12    | ✅ Seguridad |
+| GitHub Adapter   | 90%       | 14    | ✅           |
+| Integration Flow | 85%       | 11    | ✅           |
 
 ### Componentes Críticos Testeados
 
@@ -166,6 +215,14 @@ docker run -d -p 6379:6379 redis:7-alpine
 
 Variables de entorno ya configuradas para apuntar al servicio `redis`.
 
+## 🚀 Despliegue en Vercel (Serverless)
+
+El proyecto incluye soporte experimental para despliegue en Vercel, limitado a funcionalidades stateless (como el visualizador de Kanban).
+
+- **Demo**: [https://vercel.com/medalcode-projects/git-spy](https://vercel.com/medalcode-projects/git-spy)
+- **Funcionalidad Soportada**: API de lectura (`/api/repos/...`), Visualizador Kanban.
+- **Limitaciones**: No soporta Workers (cola de eventos) ni persistencia local (SQLite/Redis) en este modo.
+
 ## 📊 Monitoreo
 
 ### Métricas Prometheus
@@ -173,6 +230,7 @@ Variables de entorno ya configuradas para apuntar al servicio `redis`.
 La app expone métricas en `/metrics/prom`:
 
 **Métricas personalizadas:**
+
 - `gitspy_rate_remaining` - Tokens restantes del rate limit de GitHub
 - `gitspy_rate_reset_unix` - Timestamp del reset del rate limit
 - `gitspy_queue_waiting` - Trabajos en espera
@@ -184,10 +242,10 @@ La app expone métricas en `/metrics/prom`:
 
 ```yaml
 scrape_configs:
-  - job_name: 'gitspy'
+  - job_name: "gitspy"
     static_configs:
-      - targets: ['localhost:3000']
-    metrics_path: '/metrics/prom'
+      - targets: ["localhost:3000"]
+    metrics_path: "/metrics/prom"
 ```
 
 ### Reglas de Alerta
@@ -239,24 +297,95 @@ GitSpy/
 
 ### Scripts Disponibles
 
-```bash
+````bash
 # Desarrollo
 npm run dev              # Hot reload con ts-node-dev
 
+## Vercel deployment (API-only)
+
+- This project is deployed as API-only on Vercel. Only files under the `api/` directory are treated as serverless functions.
+- The Vercel configuration (`vercel.json`) enforces that `/api/**` is routed to the serverless functions and that all other paths return a 404 status intentionally. This prevents any accidental execution of a legacy Node server at the root path.
+
+- Expected behavior on Vercel:
+  - `GET /api/repos/:owner/:repo/kanban` -> serverless function (200/4xx/5xx depending on request)
+  - Any non-`/api` path (including `/`) -> `404 Not Found` (intentional)
+
+If you need to run the legacy Express server locally for development or tests, use the dev script (`npm run dev`) which relies on `src/index.ts`. That code is excluded from Vercel deployments via `.vercelignore` and `vercel.json` to keep production API-only.
+
+# Worker (dev): iniciar worker en proceso separado
+npm run start:worker     # Start worker process (ts-node)
+
+## Autoscaler (optional)
+
+The repository includes a simple autoscaler logic decoupled from runtime. It polls Prometheus-style metrics endpoints and decides desired worker replicas based on: backlog (`gitspy_queue_waiting`), job latency (`gitspy_job_duration_ms`), and product Kanban signals (`kanban.json`). It delegates scaling to adapters (noop, k8s via `kubectl`, or a custom script).
+
+Run locally:
+
+```bash
+# default (noop scaler):
+npm run autoscaler
+
+# use k8s scaler (requires kubectl and K8S_DEPLOYMENT env set):
+SCALER=k8s K8S_DEPLOYMENT=my-deployment K8S_NAMESPACE=default npm run autoscaler
+
+# use script scaler:
+SCALER=script SCALE_SCRIPT=./scripts/scale_my_cluster.sh npm run autoscaler
+````
+
+Configuration is available via environment variables or CLI flags (see `scripts/autoscaler.js`).
+
+## Progressive migration: SQLite → Postgres
+
+This repo includes tooling and a safe plan to migrate from the default SQLite store to Postgres with zero downtime.
+
+Key ideas:
+
+- Use `DB_MODE=dual` to enable dual-write (writes go to both SQLite and Postgres) while the system runs.
+- Use `scripts/migrate_sqlite_to_postgres.js` to copy historical data from SQLite to Postgres in a transactional, idempotent way.
+- Validate counts and samples with `scripts/validate_consistency.js`.
+- Once you're confident, switch `DB_MODE=postgres` (or point `SQLITE_PATH` away) to cut over reads to Postgres.
+
+Steps (summary):
+
+1. Provision Postgres and set `PG_CONN`.
+2. Start app with `DB_MODE=dual` so new writes go to both DBs.
+3. Run `node scripts/migrate_sqlite_to_postgres.js --pg="postgres://..."` to copy historical data.
+4. Run `node scripts/validate_consistency.js --pg="postgres://..."` and/or `--sqlite=...` to validate counts and sample mismatches.
+5. Run replay validation (optional) with `scripts/replay_events.js --out=... --dry-run` reading from Postgres if needed.
+6. When satisfied, change `DB_MODE=postgres` and restart services (reads will now come from Postgres). Keep SQLite as fallback for a rollback path.
+
+Commands examples:
+
+```bash
+# dual-write mode (start app):
+DB_MODE=dual PG_CONN="postgres://user:pass@host:5432/db" npm run dev
+
+# migrate historical data
+node scripts/migrate_sqlite_to_postgres.js --pg="postgres://user:pass@host:5432/db"
+
+# validate
+node scripts/validate_consistency.js --pg="postgres://user:pass@host:5432/db"
+```
+
 # Build
-npm run build            # Compilar TypeScript
+
+npm run build # Compilar TypeScript
 
 # Producción
-npm start                # Ejecutar build
+
+npm start # Ejecutar build
 
 # Tests
-npm test                 # Todos los tests
-npm run test:unit        # Solo unitarios
-npm run test:coverage    # Con coverage report
+
+npm test # Todos los tests
+npm run test:unit # Solo unitarios
+npm run test:coverage # Con coverage report
 
 # Utilidades
-npm run test:webhook     # Test manual de webhook
-```
+
+npm run test:webhook # Test manual de webhook
+
+````
 
 ### Prerequisitos para Tests de Integración
 
@@ -266,13 +395,14 @@ docker run -d -p 6379:6379 redis:7-alpine
 
 # Ejecutar tests de integración
 npm run test:integration
-```
+````
 
 ## 📝 Uso de la API
 
 ### Endpoints
 
 #### GET /health
+
 Health check endpoint
 
 ```bash
@@ -280,6 +410,7 @@ curl http://localhost:3000/health
 ```
 
 #### POST /webhooks
+
 Recibir webhooks de GitHub
 
 ```bash
@@ -291,18 +422,47 @@ curl -X POST http://localhost:3000/webhooks \
 ```
 
 #### GET /repositories/:owner/:repo
+
 Obtener información de repositorio (con cache multi-capa)
 
 ```bash
 curl http://localhost:3000/repositories/octocat/Hello-World
 ```
 
+#### GET /repos/:owner/:repo/kanban
+
+Obtener el Kanban canónico generado a partir de `Bitacora.md` en la raíz del repositorio.
+
+```bash
+curl http://localhost:3000/repos/medalcode/GitSpy/kanban
+```
+
+Respuesta (ejemplo):
+
+```json
+{
+  "repo": "medalcode/GitSpy",
+  "kanban": {
+    /* objeto Kanban canónico */
+  },
+  "meta": { "cached": false, "fetchedAt": "2026-01-27T12:00:00Z" }
+}
+```
+
+Notas:
+
+- El endpoint usa el contenido de `Bitacora.md` y retorna un JSON estable y versionado.
+- Soporta `ETag` y responde `304` cuando el contenido no ha cambiado.
+- Posibles códigos de respuesta: `200`, `304`, `404` (repo/file not found), `429` (rate limit), `500` (internal error).
+
 **Headers de respuesta:**
+
 - `X-Cache: HIT` - Servido desde Redis
 - `X-Cache: DB` - Servido desde SQLite
 - `X-Cache: GITHUB` - Fetched desde GitHub API
 
 #### GET /metrics/prom
+
 Métricas Prometheus
 
 ```bash
@@ -336,20 +496,20 @@ curl http://localhost:3000/metrics/prom
 - [x] **Suite completa de tests (70+ tests)**
 - [x] **Infraestructura de CI/CD**
 - [x] **Documentación completa**
+- [x] **Parser y API de Kanban** (`/api/repos/:owner/:repo/kanban`)
+- [x] **Despliegue Serverless en Vercel** (API-first)
 
 ### En Progreso 🚧
 
 - [ ] Tests de integración con Redis real
 - [ ] Tests E2E completos
-- [ ] GitHub Actions workflow
+- [ ] Refactorización de persistencia para entorno Serverless
 
 ### Próximos Pasos 📋
 
-- [ ] Migración a PostgreSQL (producción)
-- [ ] Autenticación de usuarios
-- [ ] API de consulta avanzada
-- [ ] Dashboard web
-- [ ] Webhooks salientes (notificaciones)
+- [ ] Migración completa a PostgreSQL (soportado por Vercel/Neon)
+- [ ] Autenticación básica para endpoints públicos
+- [ ] Integración CI/CD para validar formato de Bitacora.md
 
 ## 🤝 Contribuir
 
@@ -370,6 +530,7 @@ Este proyecto es privado y de uso interno.
 
 - Desarrollo inicial y arquitectura
 - Implementación de testing strategy (27/01/2026)
+- Despliegue Vercel y Kanban System (29/01/2026)
 
 ## 🙏 Agradecimientos
 
@@ -380,6 +541,6 @@ Este proyecto es privado y de uso interno.
 
 ---
 
-**Última actualización**: 27 de enero de 2026  
-**Versión**: 0.1.0  
-**Estado**: ✅ Testing Infrastructure Complete - 70/70 tests passing
+**Última actualización**: 30 de enero de 2026  
+**Versión**: 0.2.0 (Serverless Ready)  
+**Estado**: ✅ Producción en Vercel - API Kanban Operativa

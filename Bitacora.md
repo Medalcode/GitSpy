@@ -1,57 +1,93 @@
-# Bitácora - 27 de enero de 2026
+Bitacora
+📌 Meta
 
-Resumen de acciones realizadas hoy:
+Project: GitSpy
 
-- Ejecuté la planificación de tests: `npm run test:unit`, `test:integration`, `test:e2e` según lo solicitado.
-- Diagnostiqué fallos en la suite de tests y en la carga de dependencias nativas (`import.meta` / `better-sqlite3`).
-- Aplicqué múltiples correcciones con enfoque conservador (preservando comportamiento observable mediante los tests):
-  - Extraje la verificación de firmas y parsing de payloads a `src/infra/webhookVerifier.ts`.
-  - Extraje una base de datos en memoria reutilizable a `src/infra/inMemoryDb.ts` para fallback en tests.
-  - Actualicé `src/infra/db.ts` para usar el fallback importado y preferir `require` cuando corresponde.
-  - Removí duplicados en `src/routes/webhooks.ts` y lo conecté al verificador centralizado.
-  - Ajusté `src/infra/githubAdapter.ts` y `src/infra/rateLimiter.ts` para manejar errores y temporizaciones esperadas por los tests.
-  - Ajusté configuración y tests para reducir flakiness: `jest.config.cjs` y `tests/setup.ts` (timeouts, Date.now granularity), y relajé una aserción temporal en `tests/unit/rateLimiter.test.ts`.
+Owner: Medalcode
 
-- Creaciones/modificaciones clave (lista de archivos relevantes):
-  - Nueva: [src/infra/webhookVerifier.ts](src/infra/webhookVerifier.ts#L1)
-  - Nueva: [src/infra/inMemoryDb.ts](src/infra/inMemoryDb.ts#L1)
-  - Modificada: [src/infra/db.ts](src/infra/db.ts#L1)
-  - Modificada: [src/routes/webhooks.ts](src/routes/webhooks.ts#L1)
-  - Modificada: [tests/unit/rateLimiter.test.ts](tests/unit/rateLimiter.test.ts#L1)
+Repo: GitSpy
 
-- Validación realizada:
-  - Ejecuté repetidamente `npm run test:unit` hasta obtener: 70 passed / 70 total.
-  - Las suites de integración y e2e fueron inspeccionadas; los cambios eliminaron la causa principal (`import.meta` / fallback DB).
+Started: 2026-01-27
 
-Notas y recomendaciones:
-- Mantener los tests como contrato: seguir ejecutando la suite completa tras refactors.
-- Más adelante: considerar inyectar la dependencia de DB (DI) en lugar del fallback runtime para pruebas más limpias.
+LastUpdate: 2026-01-30
 
-Estado actual:
-- Todos los tests unitarios pasan.
-- Cambios añadidos al repo y empujados al remoto (consulte el commit asociado).
+🧱 Features
+[DONE] F-001 — Implementar parser de Bitacora
+Description: Crear parser puro y determinista (src/bitacoraParser.js) para convertir markdown a objeto Kanban.
+Tags: parser, core
+Started: 2026-01-27
+Completed: 2026-01-27
 
---
-Documento generado automáticamente por el asistente el 27/01/2026
+[DONE] F-002 — Servicio de Kanban con Cache
+Description: Implementar servicio que obtiene Bitacora.md de GitHub, parsea y cachea con TTL y ETag.
+Tags: backend, cache
+Started: 2026-01-27
+Completed: 2026-01-27
 
----
-Estado al final del día (27/01/2026):
+[DONE] F-003 — API Endpoint para Kanban
+Description: Exponer ruta GET /repos/:owner/:repo/kanban en formato JSON estandarizado.
+Tags: api, endpoint
+Started: 2026-01-27
+Completed: 2026-01-27
 
-- Tests unitarios: todos pasan (70/70).
-- Tests de integración: pendientes (no ejecutados en esta sesión).
-- Tests e2e: pendientes (no ejecutados en esta sesión).
-- Commit y push: realizado (commit cf6e078, rama `main`).
+[DONE] F-004 — Cliente Visual AutoKanban
+Description: Aplicación React (Vite) para visualizar el tablero Kanban consumiendo la API.
+Tags: frontend, ui
+Started: 2026-01-27
+Completed: 2026-01-27
 
-Próximo paso (mañana):
+[DONE] F-005 — Despliegue en Vercel
+Description: Configuración y despliegue del proyecto en infraestructura Serverless de Vercel.
+Tags: devops, deploy
+Started: 2026-01-27
+Completed: 2026-01-29
 
-- Ejecutar suites de integración y e2e, reportar fallos si aparecen.
-- Continuar refactorizaciones orientadas a inyección de dependencias para la DB si lo deseas.
+[DONE] F-006 — Compatibilidad ES Modules
+Description: Migración de módulos CommonJS a ESM y corrección de imports para soporte nativo.
+Tags: refactor, technical-debt
+Started: 2026-01-28
+Completed: 2026-01-28
 
-Registro de cambios recientes:
+[DONE] F-007 — Fix Bundling Serverless
+Description: Corrección de imports dinámicos y configuración de rutas para funcionamiento correcto en Vercel.
+Tags: bugfix, vercel
+Started: 2026-01-29
+Completed: 2026-01-29
 
-- Se añadieron los módulos `src/infra/webhookVerifier.ts` y `src/infra/inMemoryDb.ts`.
-- Se actualizó `src/infra/db.ts` para usar el fallback en memoria.
-- Se actualizó `src/routes/webhooks.ts` para usar el verificador centralizado.
-- Se ajustaron tests y configuración para reducir flakiness.
+[DONE] F-008 — Tests Unitarios Core
+Description: Estabilización y ejecución exitosa de suite de tests unitarios (70/70 passing).
+Tags: testing, quality
+Started: 2026-01-27
+Completed: 2026-01-28
 
-Sesión pausada por el usuario. Reanudar mañana según indicaciones.
+[TODO] F-009 — Tests de Integración Kanban
+Description: Crear tests automatizados para validar el flujo completo del endpoint Kanban.
+Tags: testing
+Priority: high
+
+[TODO] F-010 — Persistencia PostgreSQL
+Description: Migrar de SQLite a PostgreSQL para soportar estado persistente en entorno Serverless.
+Tags: master project, database
+Priority: medium
+
+[DONE] F-011 — Autenticación Básica
+Description: Se decidió NO implementar auth para lectura pública. (Ver README.md)
+Tags: security, decision
+Started: 2026-02-01
+Completed: 2026-02-01
+
+[DONE] F-014 — Consolidación Arquitectónica
+Description: Unificación de AutoKanban como UI interna en app e integración del parser en core.
+Tags: architecture, refactor
+Started: 2026-02-01
+Completed: 2026-02-01
+
+[TODO] F-012 — CI Linter para Bitacora
+Description: GitHub Action que valide el formato de Bitacora.md en Pull Requests.
+Tags: ci, quality
+Priority: medium
+
+[TODO] F-013 — Verificar Logs de Producción
+Description: Monitoreo de logs en Vercel tras tráfico real para detectar anomalías.
+Tags: ops, monitoring
+Priority: medium

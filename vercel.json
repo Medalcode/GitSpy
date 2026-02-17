@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "api/**/*.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/repos/([^/]+)/([^/]+)/kanban", "dest": "/api/repos/[owner]/[repo]/kanban.js?owner=$1&repo=$2" },
+    { "src": "/api/(.*)", "dest": "/api/$1" }
+  ]
+}
