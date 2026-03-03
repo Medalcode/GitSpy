@@ -14,19 +14,19 @@ GitSpy no es una colección de microservicios desconectados. Es un monolito modu
 
 ### 1. The Core Engine (`src/core`)
 
-El cerebro de GitSpy.
+El cerebro de GitSpy, ahora consolidado como Single Source of Truth.
 
-- **Parser Canónico:** Transforma `Bitacora.md` en estructuras de datos estrictas.
+- **Parser Canónico (`parser.js`):** Transforma `Bitacora.md` en estructuras de datos estrictas. Centralizado para ser consumido tanto por la API de Vercel (JS) como por el backend (TS).
 - **Single Source of Truth:** Centraliza toda la lógica de validación y reglas de negocio.
 - **Agnóstico:** Funciona igual en CLI, API o tests.
 
-### 2. The API (`api/`)
+### 2. The Generalist Agent (`src/index.ts`)
 
-La capa de conectividad.
+Unificación de roles para evitar fragmentación.
 
-- **Serverless First:** Endpoints optimizados para ejecución efímera.
-- **Public Read / Authenticated Write:** Lectura de tableros abierta al mundo; acciones de escritura protegidas.
-- **Smart Caching:** Middleware inteligente que minimiza el consumo de cuota de GitHub.
+- **Ops-Agent:** Combina la ingesta de webhooks (`api`) y el procesamiento de fondo (`worker`) en un ciclo de vida coordinado.
+- **Smart Sincronización:** Orquestación de `ResourceSyncSkill` para mantener GitHub y la DB local en espejo.
+- **Observabilidad:** Métricas Prometheus agregadas para todo el flujo operativo.
 
 ### 3. The UI (`app/`)
 
@@ -87,7 +87,7 @@ QUEUE_NAME=events
 - **Sistema de Caché** con Redis (get/set/del/pattern matching)
 - **Cola de Eventos** con BullMQ para procesamiento asíncrono
 - **Validación HMAC** para webhooks de GitHub (timing-safe)
-- **Persistencia SQLite** opcional con fallback in-memory
+- **Persistencia SQLite** con soporte nativo `:memory:` para entornos de test y desarrollo rápido.
 - **Métricas Prometheus** para monitoreo y alertas
 
 ### Arquitectura
@@ -170,36 +170,39 @@ npm run test:ci
 1. **Rate Limiter** (`src/infra/rateLimiter.ts`):
    - ✅ Parsing de headers de GitHub
    - ✅ Consumo de tokens
-   - ✅ Espera hasta reset
-   - ✅ Backoff exponencial con cap
+1.  **Rate Limiter** (`src/infra/rateLimiter.ts`):
+    -   ✅ Parsing de headers de GitHub
+    -   ✅ Consumo de tokens
+    -   ✅ Espera hasta reset
+    -   ✅ Backoff exponencial con cap
 
-2. **Database** (`src/infra/db.ts`):
-   - ✅ Inicialización de tablas
-   - ✅ Upsert de repositorios
-   - ✅ Guardado de eventos
-   - ✅ Fallback in-memory
+2.  **Database** (`src/infra/db.ts`):
+    -   ✅ Inicialización de tablas
+    -   ✅ Upsert de repositorios
+    -   ✅ Guardado de eventos
+    -   ✅ Persistencia nativa `:memory:` (sustituye duplicado `inMemoryDb`)
 
-3. **Webhooks** (`src/routes/webhooks.ts`):
-   - ✅ Validación HMAC timing-safe
-   - ✅ Rechazo de firmas inválidas
-   - ✅ Manejo de diferentes event types
-   - ✅ Payloads grandes y caracteres especiales
+3.  **Webhooks** (`src/routes/webhooks.ts`):
+    -   ✅ Validación HMAC timing-safe
+    -   ✅ Rechazo de firmas inválidas
+    -   ✅ Manejo de diferentes event types
+    -   ✅ Payloads grandes y caracteres especiales
 
-4. **GitHub Adapter** (`src/infra/githubAdapter.ts`):
-   - ✅ Fetch con rate limiting
-   - ✅ Retry automático en errores
-   - ✅ Actualización de rate limiter
-   - ✅ Manejo de errores de red
+4.  **GitHub Adapter** (`src/infra/githubAdapter.ts`):
+    -   ✅ Fetch con rate limiting
+    -   ✅ Retry automático en errores
+    -   ✅ Actualización de rate limiter
+    -   ✅ Manejo de errores de red
 
 ### Test Helpers
 
 Utilidades reutilizables en `tests/helpers/testUtils.ts`:
 
-- `generateWebhookSignature()` - Firmas HMAC para tests
-- `createMockRepo()` - Datos de repositorio mock
-- `createMockWebhookPayload()` - Payloads de webhooks
-- `waitFor()` - Espera condicional async
-- `sleep()` - Delays para tests
+-   `generateWebhookSignature()` - Firmas HMAC para tests
+-   `createMockRepo()` - Datos de repositorio mock
+-   `createMockWebhookPayload()` - Payloads de webhooks
+-   `waitFor()` - Espera condicional async
+-   `sleep()` - Delays para tests
 
 ## 🐳 Docker
 
@@ -219,9 +222,9 @@ Variables de entorno ya configuradas para apuntar al servicio `redis`.
 
 El proyecto incluye soporte experimental para despliegue en Vercel, limitado a funcionalidades stateless (como el visualizador de Kanban).
 
-- **Demo**: [https://vercel.com/medalcode-projects/git-spy](https://vercel.com/medalcode-projects/git-spy)
-- **Funcionalidad Soportada**: API de lectura (`/api/repos/...`), Visualizador Kanban.
-- **Limitaciones**: No soporta Workers (cola de eventos) ni persistencia local (SQLite/Redis) en este modo.
+-   **Demo**: [https://vercel.com/medalcode-projects/git-spy](https://vercel.com/medalcode-projects/git-spy)
+-   **Funcionalidad Soportada**: API de lectura (`/api/repos/...`), Visualizador Kanban.
+-   **Limitaciones**: No soporta Workers (cola de eventos) ni persistencia local (SQLite/Redis) en este modo.
 
 ## 📊 Monitoreo
 
@@ -231,12 +234,12 @@ La app expone métricas en `/metrics/prom`:
 
 **Métricas personalizadas:**
 
-- `gitspy_rate_remaining` - Tokens restantes del rate limit de GitHub
-- `gitspy_rate_reset_unix` - Timestamp del reset del rate limit
-- `gitspy_queue_waiting` - Trabajos en espera
-- `gitspy_queue_active` - Trabajos en proceso
-- `gitspy_queue_completed` - Trabajos completados
-- `gitspy_queue_failed` - Trabajos fallidos
+-   `gitspy_rate_remaining` - Tokens restantes del rate limit de GitHub
+-   `gitspy_rate_reset_unix` - Timestamp del reset del rate limit
+-   `gitspy_queue_waiting` - Trabajos en espera
+-   `gitspy_queue_active` - Trabajos en proceso
+-   `gitspy_queue_completed` - Trabajos completados
+-   `gitspy_queue_failed` - Trabajos fallidos
 
 **Configuración Prometheus:**
 
@@ -252,33 +255,20 @@ scrape_configs:
 
 Ejemplos en `monitoring/prometheus/rules.yml`:
 
-- **GitSpyRateLimitLow**: Alerta cuando quedan < 100 tokens
-- **GitSpyQueueBacklog**: Alerta con > 50 trabajos en espera
-- **GitSpyQueueFailures**: Alerta si hay trabajos fallidos
+-   **GitSpyRateLimitLow**: Alerta cuando quedan < 100 tokens
+-   **GitSpyQueueBacklog**: Alerta con > 50 trabajos en espera
+-   **GitSpyQueueFailures**: Alerta si hay trabajos fallidos
 
 ## 🏗️ Estructura del Proyecto
 
 ```
 GitSpy/
 ├── src/
-│   ├── config/           # Configuración centralizada
-│   ├── core/             # Lógica de dominio
-│   │   └── repository.ts
-│   ├── infra/            # Infraestructura
-│   │   ├── cache.ts      # Redis cache
-│   │   ├── db.ts         # SQLite persistence
-│   │   ├── inMemoryDb.ts # Fallback in-memory
-│   │   ├── githubAdapter.ts  # GitHub API client
-│   │   ├── queue.ts      # BullMQ queue
-│   │   ├── rateLimiter.ts    # Rate limit control
-│   │   └── webhookVerifier.ts # HMAC verification
-│   ├── routes/           # Express routes
-│   │   ├── webhooks.ts
-│   │   ├── repositories.ts
-│   │   └── metrics.ts
-│   ├── workers/          # Background workers
-│   │   └── eventWorker.ts
-│   └── index.ts          # App entry point
+│   ├── core/             # Lógica pura (Parser canónico, Modelos)
+│   ├── infra/            # Adaptadores externos (DB, GitHub, Queue)
+│   ├── services/         # Orquestación (Kanban Service & Normalizer)
+│   ├── workers/          # Background workers (EventWorker)
+│   └── index.ts          # App entry point (Agente Generalista)
 ├── tests/
 │   ├── setup.ts          # Global test config
 │   ├── helpers/          # Test utilities

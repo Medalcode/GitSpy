@@ -1,8 +1,12 @@
 // Normaliza un array de issues (GitHub) al formato que consume AutoKanban
 export interface NormalizedCard {
-  id: string
+  id: string | number
   title: string
   desc: string
+  tags?: string[]
+  updatedAt?: string
+  url?: string
+  assignee?: { login: string; avatar_url: string } | null
 }
 
 export interface NormalizedKanban {
@@ -17,6 +21,7 @@ export interface NormalizedKanban {
     lastSync: string
   }
 }
+
 
 function normalizeColumnName(col: string) {
   const c = String(col).toLowerCase()
@@ -82,7 +87,12 @@ export function normalizeIssues(owner: string, repo: string, issues: any[]): Nor
       id,
       title: String(issue.title ?? ''),
       desc: String(issue.description ?? issue.body ?? ''),
+      tags: extractLabels(issue),
+      updatedAt: updated,
+      url: issue.html_url ?? issue.url ?? '',
+      assignee: issue.assignee ? { login: issue.assignee.login, avatar_url: issue.assignee.avatar_url } : null
     }
+
 
     if (column === 'done') done.push(card)
     else if (column === 'in_progress') in_progress.push(card)

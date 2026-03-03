@@ -1,6 +1,6 @@
 import { fetchFile } from '../infra/githubAdapter'
 import { config } from '../config'
-import { parseBitacora } from '../bitacoraParser.js'
+import { parseBitacora } from '../core/parser.js'
 
 type CacheEntry = {
   kanban: any

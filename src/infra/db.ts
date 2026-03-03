@@ -1,6 +1,5 @@
 import fs from 'fs'
 import path from 'path'
-import InMemoryDB from './inMemoryDb'
 
 // Optional Postgres support for progressive migration
 let pgPool: any = null
@@ -29,8 +28,8 @@ function loadSqlite() {
     // Fallback: try to use dynamic import of module loader
     // If neither approach works, we'll fall through to the catch block.
   } catch (e) {
-    console.warn('better-sqlite3 not installed; using in-memory fallback for tests')
-    return InMemoryDB
+    console.warn('better-sqlite3 not installed; database functionality will be limited')
+    return null
   }
 }
 
@@ -55,7 +54,8 @@ export function initDb() {
   const Database = loadSqlite()
   if (!Database) return null
   ensureDir()
-  db = new Database(DB_PATH)
+  const dbPath = process.env.NODE_ENV === 'test' ? ':memory:' : DB_PATH
+  db = new Database(dbPath)
 
   // Initialize tables
   db.exec(`

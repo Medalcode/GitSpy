@@ -1,12 +1,12 @@
 // ARCHITECTURE NOTE: Static import is REQUIRED for Vercel to correctly bundle the parser from _lib.
 // Dynamic imports or runtime fs reads often fail in Serverless environments due to tracing limitations.
 // DO NOT refactor to dynamic import without verifying the production bundle (vercel build).
-import { parseBitacora } from '../../../_lib/bitacoraParser.js';
+import { parseBitacora } from '../../../../src/core/parser.js';
 
 
 // Helper to set CORS headers
 function setCorsHeaders(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*'); 
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, nav-uagent, Origin, X-Requested-With, Accept');
   res.setHeader('Access-Control-Max-Age', '86400');
@@ -59,12 +59,12 @@ async function fetchBitacoraFromGitHub(owner, repo) {
     // We return 404 to the user. We do NOT return 401 because we cannot distinguish.
     return { error: 'Bitacora.md not found or Repo accessible', code: 'not_found', status: 404 };
   }
-  
+
   if (status === 403) {
     const text = await res.text();
     const isRateLimit = res.headers.get('x-ratelimit-remaining') === '0';
     if (isRateLimit) {
-         return { error: 'GitHub Rate Limit Exceeded', code: 'rate_limited', status: 429 };
+      return { error: 'GitHub Rate Limit Exceeded', code: 'rate_limited', status: 429 };
     }
     // Generic forbidden
     return { error: 'Forbidden access to Repository', code: 'forbidden', status: 403, details: text };
@@ -73,7 +73,7 @@ async function fetchBitacoraFromGitHub(owner, repo) {
   if (status === 401) {
     // 401 from GitHub means our SERVER token is bad. This is a Server Config Error (500).
     // NEVER return 401 to the user for a server config issue.
-    return { error: 'Internal Upstream Auth Configuration Error', code: 'upstream_auth_error', status: 500 }; 
+    return { error: 'Internal Upstream Auth Configuration Error', code: 'upstream_auth_error', status: 500 };
   }
 
   if (!res.ok) {
@@ -95,7 +95,7 @@ export default async function handler(req, res) {
   console.log('HANDLER_START', req.url);
   try {
     setCorsHeaders(res);
-    
+
     // Guardrail: Ensure parser is loaded in production
     if (process.env.VERCEL === '1' && typeof parseBitacora !== 'function') {
       console.error('PARSER_CHECK_FAILED: parseBitacora is', typeof parseBitacora);
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
     }
 
     if (!process.env.GITHUB_TOKEN) console.warn('GITHUB_TOKEN not set in environment — requests will be unauthenticated and may be rate-limited');
-    
+
     // Validate inputs
     const owner = req.query.owner || (req.query[0] || "").split("/")[0];
     const repo = req.query.repo || (req.query[0] || "").split("/")[1];
